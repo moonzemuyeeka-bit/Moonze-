@@ -77,6 +77,17 @@ describe('Assistant conversation', () => {
     expect(r.cards?.some((c) => c.type === 'salon')).toBe(true);
   });
 
+  it('guides the customer to real open times when an unavailable slot is picked', async () => {
+    const a = makeAssistant();
+    await a.handle({ sessionId: 's9', text: 'knotless braids' });
+    await a.handle({ sessionId: 's9', text: '3' }); // Afro Crown (long 210-min service)
+    const r = await a.handle({ sessionId: 's9', text: 'book it for 2026-08-05 at 14:00' });
+    expect(r.text).toMatch(/isn't available/i);
+    // The offered open times should not include the invalid 14:00 slot.
+    const offered = r.text.split('are:')[1] ?? '';
+    expect(offered).not.toMatch(/\b14:00\b/);
+  });
+
   it('completes an end-to-end booking flow', async () => {
     const a = makeAssistant();
     await a.handle({ sessionId: 's8', text: 'silk press' });

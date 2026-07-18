@@ -74,17 +74,32 @@ function extractDate(text: string): string | undefined {
 }
 
 function extractTime(text: string): string | undefined {
-  const m = text.match(/\b(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\b/i);
-  if (!m) return undefined;
-  let hour = parseInt(m[1], 10);
-  const min = m[2] ? m[2] : '00';
-  const ap = m[3]?.toLowerCase();
-  if (ap === 'pm' && hour < 12) hour += 12;
-  if (ap === 'am' && hour === 12) hour = 0;
-  if (hour < 0 || hour > 23) return undefined;
-  // Avoid interpreting years / random numbers as a time.
-  if (!ap && !/:/.test(m[0]) && (hour > 23)) return undefined;
-  return `${hour.toString().padStart(2, '0')}:${min}`;
+  // Strip ISO dates so digits like the month/day are not read as a time.
+  const cleaned = text.replace(/\b\d{4}-\d{2}-\d{2}\b/g, ' ');
+
+  // Prefer an explicit HH:MM.
+  const hm = cleaned.match(/\b(\d{1,2}):(\d{2})\b/);
+  if (hm) {
+    const hour = parseInt(hm[1], 10);
+    const min = parseInt(hm[2], 10);
+    if (hour <= 23 && min <= 59) {
+      return `${hour.toString().padStart(2, '0')}:${hm[2]}`;
+    }
+  }
+
+  // Otherwise require an am/pm marker to disambiguate a bare hour.
+  const ap = cleaned.match(/\b(\d{1,2})\s*(am|pm)\b/i);
+  if (ap) {
+    let hour = parseInt(ap[1], 10);
+    const marker = ap[2].toLowerCase();
+    if (hour >= 1 && hour <= 12) {
+      if (marker === 'pm' && hour < 12) hour += 12;
+      if (marker === 'am' && hour === 12) hour = 0;
+      return `${hour.toString().padStart(2, '0')}:00`;
+    }
+  }
+
+  return undefined;
 }
 
 function toIso(d: Date): string {

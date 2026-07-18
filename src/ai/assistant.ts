@@ -3,6 +3,7 @@ import {
   bookAppointment,
   BookingError,
   getAvailability,
+  isSlotAvailable,
 } from '../domain/booking';
 import { looksLikeStudentProof, quotePrice } from '../domain/pricing';
 import {
@@ -353,6 +354,19 @@ export class Assistant {
     if (!session.draft.date || !session.draft.time) {
       session.pending = 'booking_datetime';
       return { text: 'Please give me both a date and a time, e.g. "tomorrow 14:00".', engine: 'rules' };
+    }
+
+    // Validate the chosen slot against real availability before collecting more
+    // details, so we can guide the customer to an actual open time.
+    if (!isSlotAvailable(salon, service, session.draft.date, session.draft.time)) {
+      session.pending = 'booking_datetime';
+      const open = getAvailability(salon, service, session.draft.date).filter((s) => s.available);
+      const chosen = session.draft.time;
+      session.draft.time = undefined;
+      const offer = open.length
+        ? `Open times for ${service.name} on ${session.draft.date} are: ${open.map((s) => s.time).join(', ')}. Which works?`
+        : `There are no open ${service.name} slots on ${session.draft.date}. Want to try another day?`;
+      return { text: `${chosen} isn't available for ${service.name} at ${salon.name}. ${offer}`, engine: 'rules' };
     }
 
     const name = session.draft.customerName ?? input.customerName;
