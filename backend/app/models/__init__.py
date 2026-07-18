@@ -1,4 +1,4 @@
-"""ORM models for the Moonze loan platform."""
+"""ORM models for the Zatu loan platform."""
 
 from app.models.customer import Customer, KycStatus
 from app.models.mobile_money import MobileMoneyProfile

@@ -1,3 +1,3 @@
-"""Moonze loan platform backend package."""
+"""Zatu loan platform backend package."""
 
 __version__ = "0.1.0"

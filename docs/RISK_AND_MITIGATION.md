@@ -1,6 +1,6 @@
 # Risk & Fraud Mitigation Playbook
 
-How Moonze keeps losses low, and what to add as the book grows. It draws on how
+How Zatu keeps losses low, and what to add as the book grows. It draws on how
 digital micro-lenders such as **FairMoney**, **Tala** and **Branch** operate,
 adapted to the Zambian mobile-money context (Airtel Money, MTN MoMo, Zamtel
 Kwacha; NRC + T-PIN identity).
@@ -40,7 +40,7 @@ Implemented in `risk_engine.evaluate()` (gate 1–2) and
 ## 5. Collections & early-warning (the intelligence layer)
 
 - **Pre-due nudges:** SMS/push reminders fire a configurable number of days (default 7) *before* the due date — the cheapest way to lift on-time repayment.
-- **Escalating cadence:** reminder at T-7, at T-0 (due today), then overdue follow-ups. Moonze generates a distinct nudge per `days_to_due` and is idempotent so customers aren't spammed.
+- **Escalating cadence:** reminder at T-7, at T-0 (due today), then overdue follow-ups. Zatu generates a distinct nudge per `days_to_due` and is idempotent so customers aren't spammed.
 - **PAR monitoring:** watch Portfolio-at-Risk and default rate by segment; tighten policy on segments that deteriorate.
 
 ## 6. Portfolio steering

@@ -1,1 +1,1 @@
-"""Business-logic services for the Moonze loan platform."""
+"""Business-logic services for the Zatu loan platform."""

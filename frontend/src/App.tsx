@@ -9,7 +9,7 @@ function Sidebar() {
   return (
     <aside className="sidebar">
       <div className="brand">
-        <span className="dot" /> Moonze
+        <span className="dot" /> Zatu
       </div>
       <p className="tagline">Smart mobile lending</p>
       <nav className="nav">

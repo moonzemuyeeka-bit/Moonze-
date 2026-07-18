@@ -153,7 +153,7 @@ def disburse_loan(db: Session, loan: Loan) -> Loan:
 
     provider = get_provider()
     result = provider.disburse(
-        loan.customer.mobile_number, loan.principal, narrative=f"Moonze loan #{loan.id}"
+        loan.customer.mobile_number, loan.principal, narrative=f"Zatu loan #{loan.id}"
     )
     if not result.success:
         raise RuntimeError(f"Disbursement failed: {result.message}")

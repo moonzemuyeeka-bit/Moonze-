@@ -12,8 +12,8 @@ import tempfile
 import pytest
 
 # Point the app at a temp DB *before* app modules import the engine.
-_TMP_DB = os.path.join(tempfile.mkdtemp(prefix="moonze-test-"), "test.db")
-os.environ["MOONZE_DATABASE_URL"] = f"sqlite:///{_TMP_DB}"
+_TMP_DB = os.path.join(tempfile.mkdtemp(prefix="zatu-test-"), "test.db")
+os.environ["ZATU_DATABASE_URL"] = f"sqlite:///{_TMP_DB}"
 
 from fastapi.testclient import TestClient  # noqa: E402
 

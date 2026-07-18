@@ -1,6 +1,6 @@
-# Moonze — Smart Mobile-Money Lending Platform
+# Zatu — Smart Mobile-Money Lending Platform
 
-Moonze is an MVP micro-lending platform for a Zambian fintech. It turns a
+Zatu is an MVP micro-lending platform for a Zambian fintech. It turns a
 customer's **mobile-money behaviour** into an instant, explainable credit
 decision, runs them through **KYC (NRC + T-PIN + Face ID)**, screens for
 **fraud**, disburses and collects through a **pay-way**, and gives the business
@@ -44,7 +44,7 @@ frontend (React + Vite + TS)  ──HTTP──▶  backend (FastAPI)
                                               SQLAlchemy ── SQLite/Postgres
 ```
 
-- **Backend:** FastAPI + SQLAlchemy 2.0, SQLite by default (swap `MOONZE_DATABASE_URL` for Postgres).
+- **Backend:** FastAPI + SQLAlchemy 2.0, SQLite by default (swap `ZATU_DATABASE_URL` for Postgres).
 - **Frontend:** React 18 + TypeScript + Vite + Recharts, dark modern UI.
 - **Tests:** 34 pytest tests across scoring, risk, loan lifecycle, intelligence and the API.
 

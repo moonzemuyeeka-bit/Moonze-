@@ -104,17 +104,17 @@ def segment_performance(db: Session, dimension: str = "risk_band") -> list[dict]
 def _nudge_message(customer: Customer, loan: Loan, days_to_due: int) -> str:
     if days_to_due < 0:
         return (
-            f"Hi {customer.full_name.split()[0]}, your Moonze loan of "
+            f"Hi {customer.full_name.split()[0]}, your Zatu loan of "
             f"ZMW {loan.outstanding:,.0f} is {abs(days_to_due)} day(s) overdue. "
             f"Please repay today to protect your credit standing."
         )
     if days_to_due == 0:
         return (
-            f"Hi {customer.full_name.split()[0]}, your Moonze loan of "
+            f"Hi {customer.full_name.split()[0]}, your Zatu loan of "
             f"ZMW {loan.outstanding:,.0f} is due today. Repay now to stay on track."
         )
     return (
-        f"Hi {customer.full_name.split()[0]}, a friendly reminder: your Moonze loan of "
+        f"Hi {customer.full_name.split()[0]}, a friendly reminder: your Zatu loan of "
         f"ZMW {loan.outstanding:,.0f} is due in {days_to_due} day(s). "
         f"Top up your wallet to repay on time and unlock a bigger next loan."
     )

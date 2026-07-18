@@ -1,4 +1,4 @@
-// Thin typed wrapper around the Moonze backend REST API.
+// Thin typed wrapper around the Zatu backend REST API.
 // All calls go through the Vite dev proxy at /api.
 
 const BASE = "/api";

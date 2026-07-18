@@ -1,4 +1,4 @@
-"""Moonze loan platform API entrypoint."""
+"""Zatu loan platform API entrypoint."""
 
 from __future__ import annotations
 
