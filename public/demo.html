@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bella Glow Salon — powered by Moonze</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:-apple-system,Segoe UI,Roboto,sans-serif;color:#2b2b2b;background:#fff}
+    .hero{background:linear-gradient(135deg,#c471ed,#f64f59);color:#fff;padding:80px 24px;text-align:center}
+    .hero h1{font-size:44px;margin-bottom:12px}
+    .hero p{font-size:18px;opacity:.95;max-width:640px;margin:0 auto}
+    .badge{display:inline-block;margin-top:18px;background:rgba(255,255,255,.2);padding:8px 16px;border-radius:20px;font-size:14px}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:20px;max-width:1000px;margin:60px auto;padding:0 24px}
+    .card{border:1px solid #eee;border-radius:16px;padding:24px;box-shadow:0 4px 16px rgba(0,0,0,.05)}
+    .card h3{color:#8e2de2;margin-bottom:8px}
+    .card p{color:#666;font-size:14px;line-height:1.5}
+    .section{max-width:820px;margin:40px auto;padding:0 24px;text-align:center}
+    .section h2{font-size:30px;margin-bottom:12px}
+    .section p{color:#666;line-height:1.6}
+    footer{background:#faf7fc;text-align:center;padding:40px;color:#999;margin-top:60px;font-size:14px}
+    .hint{background:#fff4e6;border:1px dashed #f7b955;border-radius:12px;padding:16px;max-width:640px;margin:24px auto;color:#8a5a00;font-size:14px}
+  </style>
+</head>
+<body>
+  <section class="hero">
+    <h1>Bella Glow Salon</h1>
+    <p>Braids, silk press, locs, nails &amp; spa — in-salon or come-to-you. Book in seconds with our AI concierge.</p>
+    <div class="badge">💬 Chat with Moonze in the bottom-right corner</div>
+  </section>
+
+  <div class="hint">
+    Tip: click the 💇🏽‍♀️ bubble and try “knotless braids near me”, “price for mobile silk press”,
+    “do you have a student discount?”, or “how do I get there without a car?”.
+  </div>
+
+  <div class="grid">
+    <div class="card"><h3>Find your hairdo</h3><p>Tell Moonze the style you want and it finds the best-rated salons offering it, nearest to you.</p></div>
+    <div class="card"><h3>Come-to-you service</h3><p>Prefer a stylist at home or the office? Moonze quotes the mobile markup instantly.</p></div>
+    <div class="card"><h3>Smart discounts</h3><p>Pre-book to save, and verified students unlock an extra discount on proof.</p></div>
+    <div class="card"><h3>Rides sorted</h3><p>No car? Moonze arranges Uber/Bolt/Little — and covered late-night returns.</p></div>
+  </div>
+
+  <div class="section">
+    <h2>One assistant, everywhere</h2>
+    <p>Moonze works on WhatsApp and as this embeddable website widget. Ask it to discover salons,
+    check availability, book appointments, compare prices, get review-based recommendations, and plan transport.</p>
+  </div>
+
+  <footer>Demo storefront · Powered by <b>Moonze</b> AI Beauty Concierge</footer>
+
+  <!-- Embed Moonze: same-origin API -->
+  <script src="/widget.js" data-moonze-api=""></script>
+</body>
+</html>
