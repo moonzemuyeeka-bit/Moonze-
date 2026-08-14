@@ -22,7 +22,22 @@ export const RATE_LIMITS = {
   sandboxSettle: { limit: 30, windowMs: 60_000 },
 } as const satisfies Record<string, RateLimitRule>;
 
-export function consumeRateLimit(key: string, rule: RateLimitRule): void {
+/** Throws if the caller has already used up the window, without counting a hit. */
+export function assertRateLimit(key: string, rule: RateLimitRule): void {
+  const now = Date.now();
+  const bucket = buckets.get(key);
+  if (!bucket || bucket.resetAt <= now) return;
+
+  if (bucket.count >= rule.limit) {
+    const seconds = Math.ceil((bucket.resetAt - now) / 1000);
+    throw new RateLimitError(
+      `Too many attempts. Please try again in ${seconds} second${seconds === 1 ? "" : "s"}.`,
+    );
+  }
+}
+
+/** Counts one hit against the window. */
+export function recordRateLimitHit(key: string, rule: RateLimitRule): void {
   const now = Date.now();
   const bucket = buckets.get(key);
 
@@ -32,13 +47,16 @@ export function consumeRateLimit(key: string, rule: RateLimitRule): void {
     return;
   }
 
-  if (bucket.count >= rule.limit) {
-    const seconds = Math.ceil((bucket.resetAt - now) / 1000);
-    throw new RateLimitError(
-      `Too many attempts. Please try again in ${seconds} second${seconds === 1 ? "" : "s"}.`,
-    );
-  }
   bucket.count += 1;
+}
+
+export function consumeRateLimit(key: string, rule: RateLimitRule): void {
+  assertRateLimit(key, rule);
+  recordRateLimitHit(key, rule);
+}
+
+export function clearRateLimit(key: string): void {
+  buckets.delete(key);
 }
 
 export function resetRateLimits(): void {

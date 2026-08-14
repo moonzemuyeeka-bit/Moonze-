@@ -27,6 +27,8 @@ vi.mock("next/headers", () => ({
 const { authenticateAdmin } = await import("@/lib/auth/guard");
 const { prisma } = await import("@/lib/database/client");
 const { UnauthorizedError } = await import("@/lib/errors");
+const { RATE_LIMITS, resetRateLimits } = await import("@/lib/rate-limit");
+const adminSession = await import("@/app/api/admin/session/route");
 const adminServices = await import("@/app/api/admin/services/route");
 const adminBookings = await import("@/app/api/admin/bookings/route");
 const adminAvailability = await import("@/app/api/admin/availability/route");
@@ -96,6 +98,35 @@ describe("admin sign-in", () => {
     await expect(authenticateAdmin("nobody@example.com", PASSWORD)).rejects.toThrow(
       /do not match an admin account/,
     );
+  });
+
+  it("throttles password guessing but not the owner who gets it right", async () => {
+    await seedAdmin("owner@kokosbookings.zm", PASSWORD);
+    resetRateLimits();
+
+    const attempt = (password: string) =>
+      adminSession.POST(
+        new Request("http://t/api/admin/session", {
+          method: "POST",
+          headers: { "content-type": "application/json", "x-forwarded-for": "203.0.113.7" },
+          body: JSON.stringify({ email: "owner@kokosbookings.zm", password }),
+        }),
+      );
+
+    for (let guess = 0; guess < RATE_LIMITS.adminLogin.limit; guess += 1) {
+      expect((await attempt("wrong-password")).status).toBe(401);
+    }
+
+    const blocked = await attempt("wrong-password");
+    expect(blocked.status).toBe(429);
+    expect((await blocked.json()).error.code).toBe("RATE_LIMITED");
+
+    // A correct password clears the record, so the next sign-in is not punished.
+    resetRateLimits();
+    expect((await attempt(PASSWORD)).status).toBe(200);
+    for (let signIn = 0; signIn < RATE_LIMITS.adminLogin.limit + 2; signIn += 1) {
+      expect((await attempt(PASSWORD)).status).toBe(200);
+    }
   });
 });
 

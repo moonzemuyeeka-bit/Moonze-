@@ -2,7 +2,14 @@ import { describe, expect, it } from "vitest";
 import { hashPassword, verifyPassword } from "@/lib/auth/password";
 import { decodeSession, encodeSession, type AdminSession } from "@/lib/auth/session";
 import { signWebhookPayload } from "@/lib/payments/mock-provider";
-import { consumeRateLimit, RATE_LIMITS, resetRateLimits } from "@/lib/rate-limit";
+import {
+  assertRateLimit,
+  clearRateLimit,
+  consumeRateLimit,
+  RATE_LIMITS,
+  recordRateLimitHit,
+  resetRateLimits,
+} from "@/lib/rate-limit";
 import { RateLimitError } from "@/lib/errors";
 
 function session(overrides: Partial<AdminSession> = {}): AdminSession {
@@ -111,5 +118,29 @@ describe("rate limiting", () => {
 
     await new Promise((resolve) => setTimeout(resolve, 30));
     expect(() => consumeRateLimit("login:window", rule)).not.toThrow();
+  });
+
+  it("can check the window without spending an attempt", () => {
+    resetRateLimits();
+    const rule = { limit: 1, windowMs: 60_000 };
+
+    assertRateLimit("login:peek", rule);
+    assertRateLimit("login:peek", rule);
+    // Nothing was counted, so a real attempt is still allowed.
+    expect(() => consumeRateLimit("login:peek", rule)).not.toThrow();
+    expect(() => assertRateLimit("login:peek", rule)).toThrow(RateLimitError);
+  });
+
+  it("forgets the failures once the client gets it right", () => {
+    resetRateLimits();
+    const rule = RATE_LIMITS.adminLogin;
+
+    for (let attempt = 0; attempt < rule.limit; attempt += 1) {
+      recordRateLimitHit("login:mixed", rule);
+    }
+    expect(() => assertRateLimit("login:mixed", rule)).toThrow(RateLimitError);
+
+    clearRateLimit("login:mixed");
+    expect(() => assertRateLimit("login:mixed", rule)).not.toThrow();
   });
 });
