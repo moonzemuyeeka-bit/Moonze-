@@ -1,12 +1,12 @@
 /**
- * Moonze embeddable chat widget.
+ * Flawless embeddable chat widget.
  * Drop into any salon website with:
- *   <script src="https://YOUR_HOST/widget.js" data-moonze-api="https://YOUR_HOST"></script>
+ *   <script src="https://YOUR_HOST/widget.js" data-flawless-api="https://YOUR_HOST"></script>
  * It renders a floating chat bubble that talks to POST /api/chat.
  */
 (function () {
   var script = document.currentScript;
-  var API = (script && script.getAttribute('data-moonze-api')) || '';
+  var API = (script && script.getAttribute('data-flawless-api')) || '';
   var sessionId = 'web_' + Math.random().toString(36).slice(2) + Date.now();
   var location = null;
 
@@ -43,15 +43,15 @@
   var bubble = document.createElement('button');
   bubble.className = 'mz-bubble';
   bubble.innerHTML = '💇🏽‍♀️';
-  bubble.setAttribute('aria-label', 'Open Moonze chat');
+  bubble.setAttribute('aria-label', 'Open Flawless chat');
 
   var panel = document.createElement('div');
   panel.className = 'mz-panel';
   panel.innerHTML =
-    '<div class="mz-head">Moonze Beauty Concierge<small>Salon & spa bookings, pricing & rides</small></div>' +
+    '<div class="mz-head">Flawless Beauty Concierge<small>Salon & spa bookings, pricing & rides</small></div>' +
     '<div class="mz-msgs" id="mz-msgs"></div>' +
     '<div class="mz-quick" id="mz-quick"></div>' +
-    '<div class="mz-typing" id="mz-typing" style="display:none">Moonze is typing…</div>' +
+    '<div class="mz-typing" id="mz-typing" style="display:none">Flawless is typing…</div>' +
     '<div class="mz-foot"><input id="mz-input" placeholder="Ask about a hairdo, price, booking…"/><button id="mz-send">Send</button></div>';
 
   document.body.appendChild(bubble);

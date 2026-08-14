@@ -16,7 +16,7 @@ export function createApp(config: AppConfig): Express {
     res.json({ status: 'ok', openai: config.openAiApiKey ? 'enabled' : 'disabled' });
   });
 
-  // Directory / catalog endpoints (useful for websites embedding Moonze).
+  // Directory / catalog endpoints (useful for websites embedding Flawless).
   app.get('/api/salons', (_req, res) => res.json(SALONS));
   app.get('/api/services', (_req, res) => res.json(SERVICES));
 

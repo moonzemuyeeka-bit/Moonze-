@@ -37,7 +37,7 @@ describe('HTTP API', () => {
   it('verifies WhatsApp webhook handshake', async () => {
     const res = await request(app)
       .get('/webhook/whatsapp')
-      .query({ 'hub.mode': 'subscribe', 'hub.verify_token': 'moonze-verify-token', 'hub.challenge': '12345' });
+      .query({ 'hub.mode': 'subscribe', 'hub.verify_token': 'flawless-verify-token', 'hub.challenge': '12345' });
     expect(res.status).toBe(200);
     expect(res.text).toBe('12345');
   });

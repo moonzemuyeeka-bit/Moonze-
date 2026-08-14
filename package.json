@@ -1,7 +1,7 @@
 {
-  "name": "moonze",
+  "name": "flawless",
   "version": "1.0.0",
-  "description": "Moonze - a WhatsApp + web AI assistant for salons and beauty spas: discovery, booking, mobile (come-to-you) services, dynamic pricing, review-based recommendations, transport/ride-hailing and student discounts.",
+  "description": "Flawless - a WhatsApp + web AI assistant for salons and beauty spas: discovery, booking, mobile (come-to-you) services, dynamic pricing, review-based recommendations, transport/ride-hailing and student discounts.",
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc -p tsconfig.json",
@@ -19,7 +19,7 @@
     "openai",
     "chatbot"
   ],
-  "author": "Moonze",
+  "author": "Flawless",
   "license": "MIT",
   "dependencies": {
     "express": "^4.19.2"

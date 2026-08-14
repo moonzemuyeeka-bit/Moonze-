@@ -17,7 +17,7 @@ import {
 import { planTransport } from '../domain/transport';
 import { GeoPoint, Salon, Service } from '../domain/types';
 import { detectIntent } from './nlu';
-import { MOONZE_SYSTEM_PROMPT, OpenAIClient } from './openai';
+import { FLAWLESS_SYSTEM_PROMPT, OpenAIClient } from './openai';
 
 export type CardType = 'salon' | 'quote' | 'transport' | 'availability' | 'booking';
 
@@ -154,7 +154,7 @@ export class Assistant {
     return {
       engine: 'rules',
       text:
-        "Hi, I'm Moonze 💖 your beauty concierge. I can:\n" +
+        "Hi, I'm Flawless 💖 your beauty concierge. I can:\n" +
         '• Find salons for a specific hairdo near you\n' +
         '• Show available times & book appointments\n' +
         '• Arrange mobile (come-to-you) service & tell you the markup\n' +
@@ -546,7 +546,7 @@ export class Assistant {
     if (!this.openai.isEnabled()) return response;
     try {
       const rewritten = await this.openai.complete([
-        { role: 'system', content: MOONZE_SYSTEM_PROMPT },
+        { role: 'system', content: FLAWLESS_SYSTEM_PROMPT },
         {
           role: 'user',
           content:

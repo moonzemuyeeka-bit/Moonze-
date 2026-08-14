@@ -15,7 +15,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     openAiApiKey: env.OPENAI_API_KEY || '',
     openAiModel: env.OPENAI_MODEL || 'gpt-4o-mini',
     whatsapp: {
-      verifyToken: env.WHATSAPP_VERIFY_TOKEN || 'moonze-verify-token',
+      verifyToken: env.WHATSAPP_VERIFY_TOKEN || 'flawless-verify-token',
       accessToken: env.WHATSAPP_ACCESS_TOKEN || '',
       phoneNumberId: env.WHATSAPP_PHONE_NUMBER_ID || '',
     },

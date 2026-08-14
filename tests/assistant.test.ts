@@ -14,7 +14,7 @@ describe('Assistant conversation', () => {
     const a = makeAssistant();
     const r = await a.handle({ sessionId: 's1', text: 'hi' });
     expect(r.engine).toBe('rules');
-    expect(r.text).toMatch(/Moonze/);
+    expect(r.text).toMatch(/Flawless/);
     expect(r.text).toMatch(/hairdo|service/i);
   });
 

@@ -9,7 +9,7 @@ export interface ChatMessage {
  * Thin, dependency-free OpenAI Chat Completions wrapper. It is intentionally
  * optional: when no API key is configured, `isEnabled()` returns false and the
  * assistant falls back to its built-in rule-based engine. This is the single
- * seam where OpenAI is "embedded" into Moonze for the future.
+ * seam where OpenAI is "embedded" into Flawless for the future.
  */
 export class OpenAIClient {
   private readonly apiKey: string;
@@ -51,7 +51,7 @@ export class OpenAIClient {
   }
 }
 
-export const MOONZE_SYSTEM_PROMPT = `You are Moonze, a warm, concise WhatsApp assistant for salons and beauty spas.
+export const FLAWLESS_SYSTEM_PROMPT = `You are Flawless, a warm, concise WhatsApp assistant for salons and beauty spas.
 You help customers (mostly women) discover salons for a specific hairdo, see availability,
 book appointments (including mobile "come-to-you" service), understand pricing (mobile markup,
 pre-booking discount, verified student discount), get review-based recommendations, and arrange

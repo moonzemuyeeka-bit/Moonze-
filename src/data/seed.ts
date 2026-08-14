@@ -1,7 +1,7 @@
 import { Salon, Service } from '../domain/types';
 
 /**
- * Catalog of services Moonze understands. `aliases` power fuzzy "find me a
+ * Catalog of services Flawless understands. `aliases` power fuzzy "find me a
  * salon that does <hairdo>" search.
  */
 export const SERVICES: Service[] = [

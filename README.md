@@ -1,6 +1,6 @@
-# Moonze — WhatsApp & Web AI Beauty Concierge for Salons & Spas
+# Flawless — WhatsApp & Web AI Beauty Concierge for Salons & Spas
 
-Moonze is an intelligent assistant for salons and beauty spas. It lets customers
+Flawless is an intelligent assistant for salons and beauty spas. It lets customers
 (primarily women looking for a specific hairdo) **discover salons, see available
 times, book appointments, get transparent pricing, unlock discounts, receive
 review-based recommendations, and arrange transport** — all through WhatsApp or
@@ -18,13 +18,13 @@ end-to-end with **zero external dependencies**, and a single, clean seam to
 - **Availability & booking** — shows open time slots based on salon hours and
   service duration, then books the appointment (with double-booking protection).
 - **Mobile / come-to-you service** — a stylist can meet the customer at home or
-  work; Moonze quotes the exact **mobile markup**.
+  work; Flawless quotes the exact **mobile markup**.
 - **Smart discounts** — **pre-booking discount** for booking ahead, and a
   **verified student discount** unlocked on proof (student ID or `.edu` / `.ac.*`
   email). Discounts are shown as transparent line items.
 - **Review-based recommendations** — suggests other salons that do "almost the
   same good job" for the same service.
-- **Transport / ride-hailing** — for customers without personal transport, Moonze
+- **Transport / ride-hailing** — for customers without personal transport, Flawless
   surfaces partnered ride-hailing apps (Uber / Bolt / Little) with discount codes,
   one-tap deep links, and whether a **covered late-night return** ride is offered
   for appointments finishing late.
@@ -71,7 +71,7 @@ Then open `http://localhost:3000/demo.html` and click the 💇🏽‍♀️ bubb
 ## Embedding the widget on any salon site
 
 ```html
-<script src="https://YOUR_HOST/widget.js" data-moonze-api="https://YOUR_HOST"></script>
+<script src="https://YOUR_HOST/widget.js" data-flawless-api="https://YOUR_HOST"></script>
 ```
 
 ## HTTP endpoints
@@ -84,7 +84,7 @@ Then open `http://localhost:3000/demo.html` and click the 💇🏽‍♀️ bubb
 
 ## Enabling OpenAI (future)
 
-Set `OPENAI_API_KEY` in `.env`. When present, Moonze keeps all deterministic
+Set `OPENAI_API_KEY` in `.env`. When present, Flawless keeps all deterministic
 business logic (pricing, availability, bookings) intact but rewrites replies
 through OpenAI for a warmer, more natural tone. Without a key, the rule-based
 engine handles everything.
