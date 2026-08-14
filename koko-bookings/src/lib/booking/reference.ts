@@ -4,11 +4,12 @@ import { randomInt } from "node:crypto";
  * Public booking references (`KOKO-8F42A1`).
  *
  * Random rather than sequential so nothing about the business (order volume,
- * internal ids) leaks, and drawn from an alphabet without look-alike
- * characters because customers read these over the phone.
+ * internal ids) leaks, and drawn from Crockford's base32 alphabet — I, L, O and
+ * U are omitted, which removes the pairs customers confuse when reading a
+ * reference out over the phone.
  */
 
-const ALPHABET = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
+const ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
 const REFERENCE_LENGTH = 6;
 export const REFERENCE_PREFIX = "KOKO";
 
