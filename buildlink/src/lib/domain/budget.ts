@@ -42,6 +42,10 @@ export type BudgetCategoryRollup = {
 export type BudgetRollup = {
   categories: BudgetCategoryRollup[];
   plannedMinor: number;
+  /** Sum of the category plans. */
+  allocatedMinor: number;
+  /** Headline budget not yet split across categories; negative if over-allocated. */
+  unallocatedMinor: number;
   spentMinor: number;
   /** Spend booked against no category. */
   uncategorisedSpentMinor: number;
@@ -126,6 +130,8 @@ export function summariseBudget(input: {
   return {
     categories,
     plannedMinor,
+    allocatedMinor: plannedFromCategories,
+    unallocatedMinor: input.estimatedBudgetMinor - plannedFromCategories,
     spentMinor,
     uncategorisedSpentMinor,
     depositedMinor,
