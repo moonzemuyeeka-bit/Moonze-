@@ -103,6 +103,36 @@ export async function loadDeliveryForActor(
   };
 }
 
+/**
+ * What a transporter charges to reach a delivery's destination, taken from the
+ * service area they published. A district-specific area wins over a
+ * province-wide one; `null` means they publish no rate for that destination and
+ * the fee already on the delivery stands.
+ */
+export async function quoteServiceAreaFee(
+  providerId: string,
+  deliveryId: string,
+): Promise<number | null> {
+  const delivery = await db.delivery.findUnique({
+    where: { id: deliveryId },
+    select: { provinceId: true, districtId: true },
+  });
+  if (!delivery) return null;
+
+  const areas = await db.serviceArea.findMany({
+    where: {
+      providerId,
+      provinceId: delivery.provinceId,
+      OR: [{ districtId: delivery.districtId }, { districtId: null }],
+    },
+    select: { districtId: true, feeMinor: true },
+  });
+  if (areas.length === 0) return null;
+
+  const exact = areas.find((area) => area.districtId !== null);
+  return (exact ?? areas[0])?.feeMinor ?? null;
+}
+
 export type ApplyDeliveryStatusInput = {
   delivery: DeliveryForActor;
   to: DeliveryStatus;

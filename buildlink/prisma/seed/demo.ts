@@ -1,4 +1,4 @@
-import type { OrderStatus, PrismaClient, UserRole } from "@prisma/client";
+import type { DeliveryStatus, OrderStatus, PrismaClient, UserRole } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { DEMO_DELIVERY_PROVIDERS, DEMO_SUPPLIERS } from "./demo-catalogue";
 import { suggestBudgetAllocation } from "../../src/lib/domain/budget";
@@ -63,9 +63,12 @@ export async function seedDemoData(db: PrismaClient): Promise<void> {
 
   await seedAdministrators(context);
   const supplierIds = await seedSuppliers(context);
-  await seedDeliveryProviders(context);
-  await seedCustomers(context, supplierIds);
+  const transporters = await seedDeliveryProviders(context);
+  await seedCustomers(context, supplierIds, transporters);
 }
+
+/** A seeded transporter, enough to hand it a delivery job. */
+type DemoTransporter = { id: string; vehicleId: string | null };
 
 // ---------------------------------------------------------------------------
 // Staff accounts
@@ -294,7 +297,11 @@ async function seedSuppliers(context: SeedContext): Promise<Map<string, string>>
 // Delivery providers
 // ---------------------------------------------------------------------------
 
-async function seedDeliveryProviders(context: SeedContext): Promise<void> {
+async function seedDeliveryProviders(
+  context: SeedContext,
+): Promise<Map<string, DemoTransporter>> {
+  const transporterByEmail = new Map<string, DemoTransporter>();
+
   for (const provider of DEMO_DELIVERY_PROVIDERS) {
     const userId = await upsertUser(context, {
       email: provider.email,
@@ -330,8 +337,9 @@ async function seedDeliveryProviders(context: SeedContext): Promise<void> {
       select: { id: true },
     });
 
+    let firstVehicleId: string | null = null;
     for (const vehicle of provider.vehicles) {
-      await context.db.vehicle.upsert({
+      const saved = await context.db.vehicle.upsert({
         where: {
           providerId_registration: { providerId: record.id, registration: vehicle.registration },
         },
@@ -344,8 +352,12 @@ async function seedDeliveryProviders(context: SeedContext): Promise<void> {
           capacityKg: vehicle.capacityKg,
           capacityCubicMetres: vehicle.capacityCubicMetres,
         },
+        select: { id: true },
       });
+      firstVehicleId ??= saved.id;
     }
+
+    transporterByEmail.set(provider.email, { id: record.id, vehicleId: firstVehicleId });
 
     for (const area of provider.serviceAreas) {
       const provinceId = context.provinceIdByCode.get(area.provinceCode);
@@ -378,6 +390,8 @@ async function seedDeliveryProviders(context: SeedContext): Promise<void> {
       }
     }
   }
+
+  return transporterByEmail;
 }
 
 // ---------------------------------------------------------------------------
@@ -387,6 +401,7 @@ async function seedDeliveryProviders(context: SeedContext): Promise<void> {
 async function seedCustomers(
   context: SeedContext,
   supplierIdBySlug: Map<string, string>,
+  transporterByEmail: Map<string, DemoTransporter>,
 ): Promise<void> {
   const lusakaId = context.provinceIdByCode.get("LSK");
   const kitweDistrictId = context.districtIdByName.get("CBT:Kitwe") ?? null;
@@ -466,6 +481,7 @@ async function seedCustomers(
     supplierIdBySlug,
     provinceId: lusakaId,
     districtId: lusakaDistrictId,
+    transporterByEmail,
   });
 
   // --- Customer 2: renovation, fresh account with an empty-ish dashboard ----
@@ -781,6 +797,7 @@ async function seedTradingHistory(
     supplierIdBySlug: Map<string, string>;
     provinceId: string;
     districtId: string | null;
+    transporterByEmail: Map<string, DemoTransporter>;
   },
 ): Promise<void> {
   const existing = await context.db.order.count({ where: { customerId: input.customerId } });
@@ -790,10 +807,16 @@ async function seedTradingHistory(
     supplierSlug: string;
     status: OrderStatus;
     daysAgo: number;
-    fulfilment: "SUPPLIER_DELIVERY" | "CUSTOMER_PICKUP";
+    fulfilment: "SUPPLIER_DELIVERY" | "THIRD_PARTY_DELIVERY" | "CUSTOMER_PICKUP";
     items: Array<{ productName: string; quantity: number }>;
     review?: { rating: number; comment: string };
     withContract?: boolean;
+    /**
+     * For third-party transport: the transporter already carrying the job.
+     * Omitted, the job sits unclaimed on the transporter job board, which is
+     * what a reviewer needs to see there.
+     */
+    transporterEmail?: string;
   }> = [
     {
       supplierSlug: "zambezi-cement-and-aggregates",
@@ -848,6 +871,34 @@ async function seedTradingHistory(
       items: [
         { productName: "Roof Rafter 50 × 76 mm — 6 m", quantity: 60 },
         { productName: "Roof Purlin 38 × 50 mm — 6 m", quantity: 120 },
+      ],
+    },
+    // Kafue Plumbing does not run its own trucks to Chalala, so this one is
+    // already on a hired transporter and on the road.
+    {
+      supplierSlug: "kafue-plumbing-and-water",
+      status: "OUT_FOR_DELIVERY",
+      daysAgo: 4,
+      fulfilment: "THIRD_PARTY_DELIVERY",
+      transporterEmail: "dispatch@demo-lusakasitelogistics.zm",
+      items: [
+        { productName: "Water Tank 2500 litre — vertical", quantity: 1 },
+        { productName: "Steel Tank Stand 3 m — 5000 litre rated", quantity: 1 },
+        { productName: "PVC Pressure Pipe 110 mm Class 6 — 6 m", quantity: 12 },
+      ],
+      withContract: true,
+    },
+    // Livingstone is 470 km from site and the depot does not deliver, so this
+    // job sits unclaimed on the transporter board.
+    {
+      supplierSlug: "livingstone-hardware-depot",
+      status: "CONFIRMED",
+      daysAgo: 1,
+      fulfilment: "THIRD_PARTY_DELIVERY",
+      items: [
+        { productName: "Wheelbarrow 65 litre — heavy duty", quantity: 4 },
+        { productName: "Damp Proof Course 375 mm — 30 m roll", quantity: 6 },
+        { productName: "Wire Nails 100 mm — 25 kg box", quantity: 3 },
       ],
     },
     {
@@ -906,8 +957,11 @@ async function seedTradingHistory(
     if (items.length === 0) continue;
 
     const subtotalMinor = items.reduce((total, item) => total + item.lineTotalMinor, 0);
+    // Mirrors `deliveryFeeFor`: pickup is free, third-party transport is billed
+    // by the transporter rather than on the order, and supplier delivery uses
+    // the supplier's flat fee unless the basket clears their free threshold.
     const deliveryFeeMinor =
-      entry.fulfilment === "CUSTOMER_PICKUP" || !supplier.deliveryAvailable
+      entry.fulfilment !== "SUPPLIER_DELIVERY" || !supplier.deliveryAvailable
         ? 0
         : supplier.deliveryFreeAboveMinor !== null &&
             subtotalMinor >= supplier.deliveryFreeAboveMinor
@@ -1001,13 +1055,23 @@ async function seedTradingHistory(
       });
     }
 
-    if (entry.fulfilment === "SUPPLIER_DELIVERY") {
+    if (entry.fulfilment !== "CUSTOMER_PICKUP") {
+      const transporter = entry.transporterEmail
+        ? (input.transporterByEmail.get(entry.transporterEmail) ?? null)
+        : null;
+
       await seedDelivery(context, {
         orderId: order.id,
         status: entry.status,
+        method: entry.fulfilment,
         provinceId: input.provinceId,
         districtId: input.districtId,
-        feeMinor: deliveryFeeMinor,
+        // Third-party transport is quoted by the transporter, so an unclaimed
+        // job carries no fee yet.
+        feeMinor: transporter
+          ? await transporterFee(context, transporter.id, input.provinceId, input.districtId)
+          : deliveryFeeMinor,
+        transporter,
         placedAt,
       });
     }
@@ -1189,18 +1253,38 @@ async function seedContract(
   }
 }
 
+/** What a transporter charges to reach the destination, per its service areas. */
+async function transporterFee(
+  context: SeedContext,
+  providerId: string,
+  provinceId: string,
+  districtId: string | null,
+): Promise<number> {
+  const areas = await context.db.serviceArea.findMany({
+    where: { providerId, provinceId, OR: [{ districtId }, { districtId: null }] },
+    select: { districtId: true, feeMinor: true },
+  });
+  const exact = areas.find((area) => area.districtId !== null);
+  return (exact ?? areas[0])?.feeMinor ?? 0;
+}
+
 async function seedDelivery(
   context: SeedContext,
   input: {
     orderId: string;
     status: OrderStatus;
+    method: "SUPPLIER_DELIVERY" | "THIRD_PARTY_DELIVERY";
     provinceId: string;
     districtId: string | null;
     feeMinor: number;
+    transporter: DemoTransporter | null;
     placedAt: Date;
   },
 ): Promise<void> {
   const deliveryStatus = (() => {
+    // An unclaimed third-party job stays REQUESTED however far the order has
+    // moved — that is exactly the state the job board is for.
+    if (input.method === "THIRD_PARTY_DELIVERY" && !input.transporter) return "REQUESTED" as const;
     if (input.status === "COMPLETED" || input.status === "DELIVERED") return "DELIVERED" as const;
     if (input.status === "OUT_FOR_DELIVERY") return "IN_TRANSIT" as const;
     if (statusReached(input.status, "READY_FOR_DELIVERY")) return "ACCEPTED" as const;
@@ -1210,7 +1294,9 @@ async function seedDelivery(
   const delivery = await context.db.delivery.create({
     data: {
       orderId: input.orderId,
-      method: "SUPPLIER_DELIVERY",
+      method: input.method,
+      providerId: input.transporter?.id ?? null,
+      vehicleId: input.transporter?.vehicleId ?? null,
       status: deliveryStatus,
       addressLine: "Plot 4821, Chalala",
       provinceId: input.provinceId,
@@ -1231,9 +1317,13 @@ async function seedDelivery(
     select: { id: true },
   });
 
-  const progression = ["REQUESTED", "ACCEPTED", "PICKED_UP", "IN_TRANSIT", "DELIVERED"] as const;
-  const reachedIndex = progression.indexOf(deliveryStatus as (typeof progression)[number]);
-  let previous: (typeof progression)[number] | null = null;
+  // A hired transporter has an assignment step; a supplier's own truck does not.
+  const progression: DeliveryStatus[] =
+    input.transporter === null
+      ? ["REQUESTED", "ACCEPTED", "PICKED_UP", "IN_TRANSIT", "DELIVERED"]
+      : ["REQUESTED", "ASSIGNED", "ACCEPTED", "PICKED_UP", "IN_TRANSIT", "DELIVERED"];
+  const reachedIndex = progression.indexOf(deliveryStatus);
+  let previous: DeliveryStatus | null = null;
 
   for (let index = 0; index <= reachedIndex; index += 1) {
     const toStatus = progression[index];

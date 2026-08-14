@@ -277,6 +277,13 @@ export default async function OrderPage({
                   {order.delivery.receivedBy ? (
                     <Detail label="Received by" value={order.delivery.receivedBy} />
                   ) : null}
+                  {order.delivery.method === "THIRD_PARTY_DELIVERY" &&
+                  order.delivery.feeMinor > 0 ? (
+                    <Detail
+                      label="Transport charge"
+                      value={`${formatZmw(order.delivery.feeMinor)} — paid to the transporter`}
+                    />
+                  ) : null}
                 </dl>
 
                 {order.delivery.instructions ? (

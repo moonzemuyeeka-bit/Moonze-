@@ -8,6 +8,7 @@ import {
   applyDeliveryStatus,
   assignDelivery,
   loadDeliveryForActor,
+  quoteServiceAreaFee,
   type DeliveryForActor,
 } from "@/server/delivery/service";
 import {
@@ -167,6 +168,10 @@ export async function claimDeliveryAction(
       }
     }
 
+    // Third-party transport is quoted by the transporter, not the supplier, so
+    // taking the job is also what puts a price on it.
+    const quotedFeeMinor = await quoteServiceAreaFee(providerId, parsed.data.deliveryId);
+
     // Claiming is a race: two drivers can tap at the same moment, so the update
     // is conditional on the job still being unclaimed rather than on a read.
     const claimed = await db.delivery.updateMany({
@@ -180,6 +185,7 @@ export async function claimDeliveryAction(
         providerId,
         vehicleId: parsed.data.vehicleId ?? null,
         status: "ACCEPTED",
+        ...(quotedFeeMinor === null ? {} : { feeMinor: quotedFeeMinor }),
       },
     });
     if (claimed.count === 0) {
