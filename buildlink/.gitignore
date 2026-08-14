@@ -1,0 +1,45 @@
+# dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# next.js
+.next/
+out/
+build/
+next-env.d.ts
+
+# production artefacts
+dist/
+
+# misc
+.DS_Store
+*.pem
+*.tsbuildinfo
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# local env files — never commit real secrets
+.env
+.env*.local
+.env.development
+.env.production
+.env.test
+!.env.example
+
+# vercel
+.vercel
+
+# test output
+coverage/
+playwright-report/
+test-results/
+blob-report/
+.playwright/
+
+# local object storage (dev StorageProvider writes here)
+public/uploads/
+storage/
