@@ -105,6 +105,9 @@ export const ROLE_PERMISSIONS: Record<UserRole, readonly Permission[]> = {
     "cart:use",
     "order:place",
     "project:manage",
+    // Either party to an order can escalate it: a customer who never paid is as
+    // real a problem as materials that never arrived.
+    "dispute:raise",
   ],
   DELIVERY_PROVIDER: DELIVERY_PERMISSIONS,
   PROFESSIONAL: ["profile:manage_professional", "cart:use", "order:place", "project:manage"],

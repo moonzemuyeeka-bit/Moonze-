@@ -261,7 +261,18 @@ export async function getOrderDetail(orderId: string, user: SessionUser) {
         },
       },
       review: { select: { id: true, rating: true, comment: true, createdAt: true } },
-      dispute: { select: { id: true, status: true, reason: true, createdAt: true } },
+      dispute: {
+        select: {
+          id: true,
+          status: true,
+          reason: true,
+          description: true,
+          resolution: true,
+          resolvedAt: true,
+          createdAt: true,
+          raisedById: true,
+        },
+      },
     },
   });
 

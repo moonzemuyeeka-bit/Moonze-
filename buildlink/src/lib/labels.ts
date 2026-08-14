@@ -20,6 +20,7 @@ import type {
   ProductUnit,
   ProjectStatus,
   PropertyType,
+  ReviewStatus,
   SubscriptionTier,
   SupplierDocumentType,
   UserRole,
@@ -593,7 +594,27 @@ export const VEHICLE_TYPE_LABELS: Record<VehicleType, string> = {
   TRACTOR_TRAILER: "Tractor trailer",
 };
 
+// --- Reviews ----------------------------------------------------------------
+
+export const REVIEW_STATUSES = ["PUBLISHED", "FLAGGED", "HIDDEN"] as const satisfies
+  readonly ReviewStatus[];
+
+export const REVIEW_STATUS_LABELS: Record<ReviewStatus, string> = {
+  PUBLISHED: "Published",
+  FLAGGED: "Reported",
+  HIDDEN: "Hidden",
+};
+
+export const REVIEW_STATUS_TONES: Record<ReviewStatus, BadgeTone> = {
+  PUBLISHED: "success",
+  FLAGGED: "warning",
+  HIDDEN: "neutral",
+};
+
 // --- Disputes & notifications ----------------------------------------------
+
+export const DISPUTE_STATUSES = ["OPEN", "UNDER_REVIEW", "RESOLVED", "CLOSED"] as const satisfies
+  readonly DisputeStatus[];
 
 export const DISPUTE_STATUS_LABELS: Record<DisputeStatus, string> = {
   OPEN: "Open",

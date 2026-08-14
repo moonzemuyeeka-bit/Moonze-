@@ -10,11 +10,12 @@ import { Button } from "@/components/ui/button";
 import { Alert } from "@/components/ui/alert";
 import { Timeline, formatDate, formatTimestamp } from "@/components/ui/timeline";
 import { ConfirmPaymentForms } from "@/components/orders/confirm-payment-forms";
+import { RaiseDisputeDialog } from "@/components/orders/raise-dispute-dialog";
 import { requirePageSupplier } from "@/lib/auth/guards";
 import { getOrderDetail } from "@/server/orders/queries";
 import { listProvidersForDelivery } from "@/server/delivery/queries";
 import { db } from "@/lib/db";
-import { nextSupplierAction } from "@/lib/domain/order-status";
+import { canTransitionOrder, nextSupplierAction } from "@/lib/domain/order-status";
 import { describePaymentCustody } from "@/lib/domain/payment-status";
 import { NotFoundError } from "@/lib/errors";
 import { formatZmw } from "@/lib/money";
@@ -23,6 +24,8 @@ import {
   CONTRACT_STATUS_TONES,
   DELIVERY_STATUS_LABELS,
   DELIVERY_STATUS_TONES,
+  DISPUTE_REASON_LABELS,
+  DISPUTE_STATUS_LABELS,
   FULFILMENT_METHOD_LABELS,
   ORDER_STATUS_LABELS_SUPPLIER,
   ORDER_STATUS_TONES,
@@ -90,6 +93,7 @@ export default async function SupplierOrderPage({
   );
   const canFailDelivery =
     delivery !== null && ["PICKED_UP", "IN_TRANSIT"].includes(delivery.status) && !isThirdParty;
+  const canDispute = !order.dispute && canTransitionOrder(order.status, "DISPUTED");
 
   return (
     <div className="space-y-6">
@@ -106,6 +110,13 @@ export default async function SupplierOrderPage({
             <Badge tone={ORDER_STATUS_TONES[order.status]} size="md">
               {ORDER_STATUS_LABELS_SUPPLIER[order.status]}
             </Badge>
+            {canDispute ? (
+              <RaiseDisputeDialog
+                orderId={order.id}
+                orderNumber={order.orderNumber}
+                counterpartyName={order.customer.name}
+              />
+            ) : null}
             {canCancel ? (
               <SupplierCancelOrderDialog orderId={order.id} orderNumber={order.orderNumber} />
             ) : null}
@@ -127,8 +138,25 @@ export default async function SupplierOrderPage({
       ) : null}
 
       {order.dispute ? (
-        <Alert tone="danger" title="A dispute is open on this order">
-          BuildLink is reviewing it and will contact you. Keep any delivery notes and photographs.
+        <Alert
+          tone={order.dispute.resolution ? "info" : "danger"}
+          title={
+            order.dispute.resolution
+              ? `Dispute decided: ${DISPUTE_STATUS_LABELS[order.dispute.status]}`
+              : `Dispute raised: ${DISPUTE_REASON_LABELS[order.dispute.reason]}`
+          }
+        >
+          {order.dispute.resolution ? (
+            <p>{order.dispute.resolution}</p>
+          ) : (
+            <>
+              <p>{order.dispute.description}</p>
+              <p className="mt-1 text-xs">
+                BuildLink is reviewing this and will contact you. Keep any delivery notes and
+                photographs.
+              </p>
+            </>
+          )}
         </Alert>
       ) : null}
 

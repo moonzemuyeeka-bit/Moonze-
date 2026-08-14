@@ -18,6 +18,7 @@ export function Pagination({
   buildHref,
   className,
   itemNoun = "result",
+  itemNounPlural,
 }: {
   page: number;
   totalPages: number;
@@ -26,12 +27,15 @@ export function Pagination({
   buildHref: (page: number) => string;
   className?: string;
   itemNoun?: string;
+  /** Needed for anything that does not pluralise by adding "s" ("entry", "party"). */
+  itemNounPlural?: string;
 }) {
+  const noun = totalCount === 1 ? itemNoun : (itemNounPlural ?? `${itemNoun}s`);
+
   if (totalPages <= 1) {
     return totalCount > 0 ? (
       <p className={cn("text-xs text-foreground-muted", className)}>
-        {totalCount} {itemNoun}
-        {totalCount === 1 ? "" : "s"}
+        {totalCount} {noun}
       </p>
     ) : null;
   }
@@ -48,8 +52,7 @@ export function Pagination({
       <p className="text-xs text-foreground-muted">
         Showing <span className="font-medium text-foreground">{first}</span>–
         <span className="font-medium text-foreground">{last}</span> of{" "}
-        <span className="font-medium text-foreground">{totalCount}</span> {itemNoun}
-        {totalCount === 1 ? "" : "s"}
+        <span className="font-medium text-foreground">{totalCount}</span> {noun}
       </p>
 
       <ul className="flex items-center gap-1">

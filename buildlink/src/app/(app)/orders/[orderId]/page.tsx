@@ -21,6 +21,7 @@ import { requirePageUser } from "@/lib/auth/guards";
 import { getOrderDetail } from "@/server/orders/queries";
 import { getPaymentProvider, paymentEnvironmentNotice } from "@/lib/services/payments";
 import { describePaymentCustody } from "@/lib/domain/payment-status";
+import { canTransitionOrder } from "@/lib/domain/order-status";
 import { NotFoundError } from "@/lib/errors";
 import { formatZmw } from "@/lib/money";
 import {
@@ -28,6 +29,8 @@ import {
   CONTRACT_STATUS_TONES,
   DELIVERY_STATUS_LABELS,
   DELIVERY_STATUS_TONES,
+  DISPUTE_REASON_LABELS,
+  DISPUTE_STATUS_LABELS,
   FULFILMENT_METHOD_LABELS,
   ORDER_STATUS_LABELS,
   ORDER_STATUS_TONES,
@@ -38,6 +41,7 @@ import {
   VERIFICATION_STATUS_LABELS,
 } from "@/lib/labels";
 import { ConfirmPaymentForms } from "@/components/orders/confirm-payment-forms";
+import { RaiseDisputeDialog } from "@/components/orders/raise-dispute-dialog";
 import {
   CancelOrderDialog,
   ConfirmCompleteForm,
@@ -88,6 +92,8 @@ export default async function OrderPage({
     ["PENDING_PAYMENT", "PAYMENT_PENDING", "CONFIRMED"].includes(order.status);
   const canComplete = order.viewer.isCustomer && order.status === "DELIVERED";
   const canReview = order.viewer.isCustomer && order.status === "COMPLETED" && !order.review;
+  const canDispute =
+    order.viewer.isCustomer && !order.dispute && canTransitionOrder(order.status, "DISPUTED");
 
   return (
     <div className="space-y-6">
@@ -104,6 +110,13 @@ export default async function OrderPage({
             <Badge tone={ORDER_STATUS_TONES[order.status]} size="md">
               {ORDER_STATUS_LABELS[order.status]}
             </Badge>
+            {canDispute ? (
+              <RaiseDisputeDialog
+                orderId={order.id}
+                orderNumber={order.orderNumber}
+                counterpartyName={order.supplier.businessName}
+              />
+            ) : null}
             {canCancel ? (
               <CancelOrderDialog orderId={order.id} orderNumber={order.orderNumber} />
             ) : null}
@@ -128,8 +141,30 @@ export default async function OrderPage({
         </Alert>
       ) : null}
       {order.dispute ? (
-        <Alert tone="danger" title="A dispute is open on this order">
-          BuildLink is reviewing it. You can still see the full history below.
+        <Alert
+          tone={order.dispute.resolution ? "info" : "danger"}
+          title={
+            order.dispute.resolution
+              ? `Dispute decided: ${DISPUTE_STATUS_LABELS[order.dispute.status]}`
+              : `Dispute raised: ${DISPUTE_REASON_LABELS[order.dispute.reason]}`
+          }
+        >
+          {order.dispute.resolution ? (
+            <>
+              <p>{order.dispute.resolution}</p>
+              {order.dispute.resolvedAt ? (
+                <p className="mt-1 text-xs">Decided {formatDate(order.dispute.resolvedAt)}.</p>
+              ) : null}
+            </>
+          ) : (
+            <>
+              <p>{order.dispute.description}</p>
+              <p className="mt-1 text-xs">
+                Raised {formatDate(order.dispute.createdAt)}. BuildLink is reviewing it and will
+                come back to both parties.
+              </p>
+            </>
+          )}
         </Alert>
       ) : null}
 
