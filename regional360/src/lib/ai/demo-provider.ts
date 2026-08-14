@@ -328,7 +328,6 @@ function recoveryPlan(): AIAnswer {
 
 function prepareMeeting(): AIAnswer {
   const kpi = getKpiSummary();
-  const cards = allScorecards();
   const health = allAccountHealth().filter((h) => h.tier !== "Healthy");
   const diag = diagnosePerformance();
   return {

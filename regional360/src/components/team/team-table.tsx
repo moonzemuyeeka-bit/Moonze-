@@ -18,7 +18,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { PerformancePill } from "@/components/shared/status-pill";
@@ -32,6 +31,7 @@ function useCoachingProgress() {
   React.useEffect(() => {
     try {
       const raw = localStorage.getItem("r360-coaching");
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       if (raw) setDone(JSON.parse(raw));
     } catch {
       /* ignore */

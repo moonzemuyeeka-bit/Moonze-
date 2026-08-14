@@ -37,6 +37,7 @@ export function ActionStoreProvider({
   React.useEffect(() => {
     try {
       const raw = localStorage.getItem(KEY);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       if (raw) setState(JSON.parse(raw));
     } catch {
       /* ignore */

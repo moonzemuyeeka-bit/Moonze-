@@ -31,7 +31,9 @@ export function CopilotProvider({ children }: { children: React.ReactNode }) {
   const [messages, setMessages] = React.useState<CopilotMessage[]>([]);
   const [loading, setLoading] = React.useState(false);
   const contextRef = React.useRef(context);
-  contextRef.current = context;
+  React.useEffect(() => {
+    contextRef.current = context;
+  }, [context]);
 
   const ask = React.useCallback(async (question: string) => {
     const id = `${Date.now()}-${Math.random().toString(36).slice(2)}`;

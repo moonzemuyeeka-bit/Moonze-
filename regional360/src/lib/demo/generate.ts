@@ -13,7 +13,7 @@ import type {
   Stage,
   Territory,
 } from "@/lib/types";
-import { CYCLE_STAGES, OPEN_STAGES } from "@/lib/types";
+import { OPEN_STAGES } from "@/lib/types";
 
 // Fixed reference "today" so the demo dataset is fully deterministic across
 // server restarts (stable snapshots). Roughly matches the current date.
@@ -170,7 +170,7 @@ export function generateDataset(seed = 42): DemoDataset {
     "Western",
     "Central",
   ];
-  const territories: Territory[] = territoryNames.map((name, i) => ({
+  const territories: Territory[] = territoryNames.map((name) => ({
     id: `terr-${name.toLowerCase()}`,
     name,
     regionId: region.id,
@@ -239,11 +239,9 @@ export function generateDataset(seed = 42): DemoDataset {
     const ownedProducts: AccountProduct[] = [];
     const nProducts = i === 0 ? 2 : randInt(1, 4);
     const shuffled = [...products].sort(() => rand() - 0.5);
-    let allocated = 0;
     for (let p = 0; p < nProducts; p++) {
       const av = Math.round(annualRevenue / nProducts);
       ownedProducts.push({ productId: shuffled[p].id, annualValue: av });
-      allocated += av;
     }
 
     const isAbc = i === 0;

@@ -1,11 +1,12 @@
 import {
+  accountById,
   accountName,
   getOpportunities,
   productName,
   salespersonName,
   territoryName,
 } from "@/lib/repositories";
-import { avg, isOpen, isWon, sum } from "@/lib/services/metrics";
+import { avg, isOpen, isWon } from "@/lib/services/metrics";
 import { getKpiSummary } from "@/lib/services/metrics";
 import type { Opportunity, Stage } from "@/lib/types";
 
@@ -14,6 +15,7 @@ export interface EnrichedOpportunity extends Opportunity {
   ownerName: string;
   territoryName: string;
   productName: string;
+  industry: string;
 }
 
 export function enrichedOpportunities(): EnrichedOpportunity[] {
@@ -23,6 +25,7 @@ export function enrichedOpportunities(): EnrichedOpportunity[] {
     ownerName: salespersonName(o.ownerId),
     territoryName: territoryName(o.territoryId),
     productName: productName(o.productId),
+    industry: accountById(o.accountId)?.industry ?? "Unknown",
   }));
 }
 

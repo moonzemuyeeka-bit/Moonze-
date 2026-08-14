@@ -1,4 +1,4 @@
-import { formatCurrency, formatPercent } from "@/lib/utils";
+import { formatPercent } from "@/lib/utils";
 import { getDataset } from "@/lib/repositories";
 import { getKpiSummary, territoryCoverage } from "@/lib/services/metrics";
 import { allAccountHealth } from "@/lib/services/accounts";

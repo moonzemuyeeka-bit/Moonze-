@@ -1,5 +1,5 @@
 import { getOpportunities } from "@/lib/repositories";
-import { avg, cycleDays } from "@/lib/services/metrics";
+import { avg } from "@/lib/services/metrics";
 import { CYCLE_STAGES } from "@/lib/types";
 import type { CycleStage, CycleStageName, Opportunity } from "@/lib/types";
 

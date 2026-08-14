@@ -25,7 +25,6 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ConfidenceBadge } from "@/components/shared/confidence-badge";
 import { EmptyState } from "@/components/shared/empty-state";
 import { useActionStore } from "@/components/providers/action-store";
-import { useCopilot } from "@/components/providers/copilot-provider";
 import type { ActionStatus, RecommendedAction } from "@/lib/types";
 
 const PRIORITY_VARIANT: Record<string, "destructive" | "warning" | "muted"> = {
@@ -51,7 +50,6 @@ export function ActionCentre({
   owners: string[];
 }) {
   const store = useActionStore();
-  const { openWith } = useCopilot();
   const [filter, setFilter] = React.useState<string>("active");
 
   const all = React.useMemo(
