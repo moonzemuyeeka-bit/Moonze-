@@ -42,7 +42,7 @@ as well on a phone.
 | Database | PostgreSQL + Prisma |
 | Validation | Zod schemas shared by the browser and the server |
 | Forms | React Hook Form |
-| Tests | Vitest (unit + database-backed integration) |
+| Tests | Vitest (unit + database-backed integration), Playwright (browser journeys) |
 | Money | Integer **ngwee** (1 kwacha = 100 ngwee), displayed as `K280` |
 | Time | Calendar dates plus `HH:mm` in `Africa/Lusaka`; instants stored in UTC |
 
@@ -76,6 +76,7 @@ npm run start       # run the production build
 npm run typecheck   # tsc --noEmit
 npm run lint        # eslint
 npm test            # vitest run
+npm run test:e2e    # playwright browser journeys (needs a build first)
 npm run db:seed     # re-seed demo data
 npm run db:reset    # drop, re-migrate and re-seed (development only)
 ```
@@ -350,6 +351,7 @@ src/
 tests/
   unit/                   pure logic
   integration/            database-backed lifecycle tests
+  e2e/                    Playwright browser journeys on a phone viewport
 ```
 
 ---
@@ -357,10 +359,13 @@ tests/
 ## Testing
 
 ```bash
-npm test
+npm test        # 141 unit + integration tests (Vitest)
+
+npm run build   # the browser tests run against a production build
+npm run test:e2e   # 5 browser journeys (Playwright, phone viewport)
 ```
 
-138 tests run against a throwaway database (`TEST_DATABASE_URL`); the suite
+The Vitest suite runs against a throwaway database (`TEST_DATABASE_URL`); it
 refuses to start if that points at the same database as `DATABASE_URL`.
 
 **Unit** — money and ngwee arithmetic, deposit and balance calculation for every
@@ -377,7 +382,22 @@ and phone; cancellation; a mobile-money deposit confirming an appointment and
 scheduling reminders; declines, cancellations and retries; expiry mid-payment;
 money landing after a slot is gone; replayed and forged webhooks; refunds; price
 changes not rewriting history; reminder scheduling, dispatch, de-duplication and
-cancellation; and admin authorisation across every admin endpoint.
+cancellation; failed sign-ins throttling while a correct password does not; and
+admin authorisation across every admin endpoint.
+
+**Browser (Playwright)** — a real Chrome at 390 × 844 walks the whole customer
+journey against a production build: service → date → time → details → the policy
+gate refusing to advance until the box is ticked → a mobile-money deposit that
+leaves the appointment unconfirmed while it processes → confirmation with the
+reference, `K50` paid and `K450` still due → the slot returning 409 for the next
+customer → finding the booking again with the reference and phone number. It also
+covers admin route protection, rejected credentials and the owner's dashboard,
+bookings, services, calendar and settings pages. Every run asserts the browser
+console stayed clean and writes screenshots to `tests/e2e/screenshots/`.
+
+Playwright drives the Chrome already installed on the machine (`channel:
+"chrome"`), so there is no separate browser download. Point it elsewhere with
+`E2E_BASE_URL`.
 
 ---
 

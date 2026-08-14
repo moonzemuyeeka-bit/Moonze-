@@ -15,6 +15,7 @@
     "db:reset": "prisma migrate reset --force && npm run db:seed",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:e2e": "playwright test",
     "postinstall": "prisma generate"
   },
   "prisma": {
@@ -42,6 +43,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
+    "@playwright/test": "^1.62.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20.19.43",
     "@types/react": "^19",

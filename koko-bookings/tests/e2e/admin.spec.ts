@@ -1,0 +1,77 @@
+import { expect, test } from "@playwright/test";
+import { attachScreenshot, watchForConsoleErrors } from "./helpers";
+
+/**
+ * The owner's side: admin pages are closed to the public, and once signed in the
+ * dashboard is usable from a phone.
+ */
+
+const EMAIL = process.env.ADMIN_EMAIL ?? "owner@kokosbookings.zm";
+const PASSWORD = process.env.ADMIN_PASSWORD ?? "KokoLashes2026!";
+
+test("the admin area is protected", async ({ page }) => {
+  await page.goto("/admin");
+  await expect(page).toHaveURL(/\/admin\/login/);
+  await expect(page.getByRole("button", { name: "Sign in" })).toBeVisible();
+
+  await page.goto("/admin/bookings");
+  await expect(page).toHaveURL(/\/admin\/login/);
+});
+
+test("wrong credentials are rejected", async ({ page }) => {
+  await page.goto("/admin/login");
+  await page.getByLabel("Email").fill(EMAIL);
+  await page.getByLabel("Password").fill("definitely-not-the-password");
+  await page.getByRole("button", { name: "Sign in" }).click();
+
+  await expect(page.getByText("Sign in failed")).toBeVisible();
+  await expect(page).toHaveURL(/\/admin\/login/);
+});
+
+test("the owner signs in and runs the business from a phone", async ({ page }, testInfo) => {
+  const problems = watchForConsoleErrors(page);
+
+  await page.goto("/admin/login");
+  await page.getByLabel("Email").fill(EMAIL);
+  await page.getByLabel("Password").fill(PASSWORD);
+  await page.getByRole("button", { name: "Sign in" }).click();
+
+  await expect(page.getByRole("heading", { name: "Today at a glance" })).toBeVisible();
+  await expect(page.getByText("Deposits collected")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Revenue" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Next appointment" })).toBeVisible();
+  await attachScreenshot(testInfo, page, "09_admin_dashboard_on_a_phone", { fullPage: true });
+
+  await test.step("bookings can be filtered and searched", async () => {
+    await page.goto("/admin/bookings");
+    await expect(page.getByRole("heading", { name: "Bookings" })).toBeVisible();
+
+    const references = page.getByText(/^KOKO-[0-9A-Z]{6}$/);
+    await expect(references.first()).toBeVisible();
+    await attachScreenshot(testInfo, page, "10_admin_bookings_on_a_phone");
+
+    await page.goto("/admin/bookings?filter=confirmed");
+    await expect(page.getByText("Confirmed", { exact: true }).first()).toBeVisible();
+  });
+
+  await test.step("services and their prices are editable", async () => {
+    await page.goto("/admin/services");
+    await expect(page.getByRole("heading", { name: "Services & prices" })).toBeVisible();
+    await expect(page.getByText("Volume").first()).toBeVisible();
+    await expect(page.getByText("K500").first()).toBeVisible();
+  });
+
+  await test.step("the calendar is there to block dates and manage slots", async () => {
+    await page.goto("/admin/calendar");
+    await expect(page.getByRole("heading", { name: "Calendar" })).toBeVisible();
+  });
+
+  await test.step("settings hold the business rules", async () => {
+    await page.goto("/admin/settings");
+    await expect(page.getByRole("heading", { name: "Business settings" })).toBeVisible();
+    await expect(page.getByLabel("Deposit (K)")).toBeVisible();
+    await expect(page.getByLabel("Buffer between clients (minutes)")).toBeVisible();
+  });
+
+  expect(problems, `browser reported problems:\n${problems.join("\n")}`).toEqual([]);
+});
