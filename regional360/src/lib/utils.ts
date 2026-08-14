@@ -5,22 +5,25 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+export const CURRENCY_CODE = "ZMW";
+export const CURRENCY_LOCALE = "en-ZM";
+
 export function formatCurrency(
   value: number,
   opts: { compact?: boolean; decimals?: number } = {},
 ): string {
   const { compact = false, decimals = 0 } = opts;
   if (compact) {
-    return new Intl.NumberFormat("en-US", {
+    return new Intl.NumberFormat(CURRENCY_LOCALE, {
       style: "currency",
-      currency: "USD",
+      currency: CURRENCY_CODE,
       notation: "compact",
       maximumFractionDigits: 1,
     }).format(value);
   }
-  return new Intl.NumberFormat("en-US", {
+  return new Intl.NumberFormat(CURRENCY_LOCALE, {
     style: "currency",
-    currency: "USD",
+    currency: CURRENCY_CODE,
     maximumFractionDigits: decimals,
   }).format(value);
 }

@@ -160,7 +160,7 @@ export function generateDataset(seed = 42): DemoDataset {
   const region = {
     id: "region-1",
     name: "North America — Enterprise",
-    currency: "USD",
+    currency: "ZMW",
   };
 
   const territoryNames = [
