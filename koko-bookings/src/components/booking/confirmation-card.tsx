@@ -35,8 +35,9 @@ export function ConfirmationCard({
   const shareText = `My ${businessName} appointment: ${booking.serviceName} on ${booking.dateLabel} at ${booking.startTime}. Reference ${booking.reference}.`;
 
   async function share() {
+    const canShareNatively = typeof navigator.share === "function";
     try {
-      if (typeof navigator !== "undefined" && "share" in navigator) {
+      if (canShareNatively) {
         await navigator.share({ title: `${businessName} appointment`, text: shareText });
         return;
       }

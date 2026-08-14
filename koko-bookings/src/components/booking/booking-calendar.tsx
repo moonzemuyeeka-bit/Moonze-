@@ -97,7 +97,7 @@ export function BookingCalendar({
         </div>
       ) : (
         <div
-          role="grid"
+          role="group"
           aria-label={`Availability for ${formatMonthLabel(month)}`}
           className={cn("grid grid-cols-7 gap-1 transition-opacity", loading && "opacity-60")}
         >
@@ -115,7 +115,6 @@ export function BookingCalendar({
               <button
                 key={day.date}
                 type="button"
-                role="gridcell"
                 disabled={!selectable}
                 onClick={() => onSelect(day.date)}
                 aria-pressed={selected}
