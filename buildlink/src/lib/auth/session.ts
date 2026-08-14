@@ -15,7 +15,8 @@ import { env, isProduction } from "@/lib/env";
  * suspended account or a revoked device takes effect immediately.
  */
 
-export const SESSION_COOKIE_NAME = "buildlink_session";
+export { SESSION_COOKIE_NAME } from "@/lib/auth/session.edge";
+import { SESSION_COOKIE_NAME } from "@/lib/auth/session.edge";
 
 export type SessionUser = {
   id: string;
