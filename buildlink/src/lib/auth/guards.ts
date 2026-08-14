@@ -135,6 +135,26 @@ export async function requireSupplier(): Promise<SupplierContext> {
   return { user, supplier };
 }
 
+/**
+ * Page equivalent of `requireDeliveryProvider`. A DELIVERY_PROVIDER account
+ * without a transport profile has not finished signing up, so it is sent back to
+ * the registration form rather than shown an empty job board.
+ */
+export async function requirePageDeliveryProvider(returnTo?: string): Promise<{
+  user: SessionUser;
+  providerId: string;
+}> {
+  const user = await requirePagePermission("delivery:manage_own_jobs", returnTo);
+  const provider = await db.deliveryProvider.findFirst({
+    where: { userId: user.id, deletedAt: null },
+    select: { id: true },
+  });
+  if (!provider) {
+    redirect("/register/delivery");
+  }
+  return { user, providerId: provider.id };
+}
+
 export async function requireDeliveryProvider(): Promise<{
   user: SessionUser;
   providerId: string;

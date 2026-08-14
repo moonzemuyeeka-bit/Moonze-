@@ -32,6 +32,7 @@ export const ANALYTICS_EVENTS = {
   contractSent: "contract_sent",
   contractAccepted: "contract_accepted",
   deliveryRequested: "delivery_requested",
+  deliveryAssigned: "delivery_assigned",
   deliveryCompleted: "delivery_completed",
   reviewSubmitted: "review_submitted",
   paletteAnalysed: "palette_analysed",
