@@ -1,0 +1,1371 @@
+// BuildLink Zambia — relational schema.
+//
+// Conventions
+//  * Primary keys are UUIDs (`@default(uuid())`).
+//  * Every table carries `createdAt` / `updatedAt`.
+//  * Money is stored as INTEGER minor units (ngwee, 1 ZMW = 100 ngwee) so all
+//    arithmetic is exact. See src/lib/money.ts for the single formatting path
+//    and the enforced per-field ceiling.
+//  * `deletedAt` marks soft deletion on records that must remain referenceable
+//    from historical orders, contracts and audit logs.
+//  * Percentages / commission are stored in basis points (bps, 1/100th of a
+//    percent) to avoid floating point.
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  directUrl  = env("DIRECT_DATABASE_URL")
+  // pg_trgm powers fuzzy marketplace search ("cemnt" still finds cement).
+  extensions = [pg_trgm]
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum UserRole {
+  CUSTOMER
+  SUPPLIER
+  DELIVERY_PROVIDER
+  PROFESSIONAL
+  ARTISAN
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  PENDING_VERIFICATION
+  SUSPENDED
+  DEACTIVATED
+}
+
+enum OtpPurpose {
+  PHONE_VERIFICATION
+  LOGIN
+  PASSWORD_RESET
+}
+
+enum PropertyType {
+  HOUSE
+  APARTMENT
+  RENOVATION
+  COMMERCIAL
+  BOUNDARY_WALL
+  OTHER
+}
+
+enum ConstructionType {
+  NEW_BUILD
+  RENOVATION
+  EXTENSION
+  FINISHING_ONLY
+  OTHER
+}
+
+enum ProjectStatus {
+  PLANNING
+  ACTIVE
+  PAUSED
+  COMPLETED
+  CANCELLED
+}
+
+enum ConstructionStage {
+  PLANNING
+  SITE_PREPARATION
+  FOUNDATION
+  WALLING
+  ROOFING
+  PLUMBING
+  ELECTRICAL
+  PLASTERING
+  FLOORING
+  PAINTING
+  FINISHING
+  COMPLETED
+}
+
+enum BudgetCategoryKey {
+  LAND_AND_SITE_PREPARATION
+  FOUNDATION
+  WALLING
+  ROOFING
+  PLUMBING
+  ELECTRICAL
+  DOORS_AND_WINDOWS
+  FLOORING
+  CEILING
+  PAINTING
+  KITCHEN
+  BATHROOM
+  LABOUR
+  TRANSPORT
+  PROFESSIONAL_FEES
+  MISCELLANEOUS
+}
+
+enum BudgetTransactionType {
+  EXPENSE
+  MATERIAL_PURCHASE
+  DEPOSIT
+  REFUND
+  ADJUSTMENT
+}
+
+enum ProductUnit {
+  BAG
+  PIECE
+  TON
+  CUBIC_METRE
+  TRUCK
+  METRE
+  KILOGRAM
+  BOX
+  BUNDLE
+  SHEET
+  LITRE
+  OTHER
+}
+
+enum ProductStatus {
+  DRAFT
+  PENDING_APPROVAL
+  ACTIVE
+  INACTIVE
+  REJECTED
+  ARCHIVED
+}
+
+enum VerificationStatus {
+  UNVERIFIED
+  PENDING
+  VERIFIED
+  REJECTED
+  SUSPENDED
+}
+
+enum BusinessRegistrationStatus {
+  NOT_PROVIDED
+  SELF_DECLARED
+  DOCUMENTS_SUBMITTED
+  VERIFIED
+}
+
+enum SupplierDocumentType {
+  BUSINESS_REGISTRATION_CERTIFICATE
+  TAX_CLEARANCE
+  DIRECTOR_IDENTIFICATION
+  PROOF_OF_ADDRESS
+  OTHER
+}
+
+enum DocumentReviewStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum SubscriptionTier {
+  FREE
+  STANDARD
+  PREMIUM
+}
+
+enum OrderStatus {
+  DRAFT
+  PENDING_PAYMENT
+  PAYMENT_PENDING
+  CONFIRMED
+  PROCESSING
+  READY_FOR_DELIVERY
+  OUT_FOR_DELIVERY
+  DELIVERED
+  COMPLETED
+  CANCELLED
+  DISPUTED
+  REFUNDED
+}
+
+enum FulfilmentMethod {
+  SUPPLIER_DELIVERY
+  THIRD_PARTY_DELIVERY
+  CUSTOMER_PICKUP
+}
+
+enum PaymentStatus {
+  INITIATED
+  PENDING
+  SUCCESSFUL
+  FAILED
+  CANCELLED
+  REFUNDED
+}
+
+/// How a payment reaches the supplier. BuildLink never takes custody of funds:
+/// RECORDED_* methods are bookkeeping entries for money that moved directly
+/// between customer and supplier.
+enum PaymentMethod {
+  RECORDED_BANK_TRANSFER
+  RECORDED_CASH
+  RECORDED_MOBILE_MONEY
+  MOBILE_MONEY
+  CARD
+  BANK_TRANSFER
+  SANDBOX
+}
+
+enum PaymentDirection {
+  CUSTOMER_TO_SUPPLIER
+  SUPPLIER_TO_CUSTOMER
+}
+
+/// Signed ledger of a project's recorded construction funds. BuildLink does not
+/// hold this money — the ledger records what the customer says they have set
+/// aside and what has been committed to suppliers.
+enum WalletEntryType {
+  DEPOSIT_RECORDED
+  ALLOCATION
+  ALLOCATION_RELEASED
+  REFUND_RECORDED
+  ADJUSTMENT
+}
+
+enum ContractStatus {
+  DRAFT
+  SENT
+  ACCEPTED
+  REJECTED
+  CANCELLED
+  COMPLETED
+}
+
+enum ContractPartyRole {
+  CUSTOMER
+  SUPPLIER
+}
+
+enum DeliveryMethod {
+  SUPPLIER_DELIVERY
+  THIRD_PARTY_DELIVERY
+  CUSTOMER_PICKUP
+}
+
+enum DeliveryStatus {
+  REQUESTED
+  ASSIGNED
+  ACCEPTED
+  PICKED_UP
+  IN_TRANSIT
+  DELIVERED
+  FAILED
+  CANCELLED
+}
+
+enum DeliveryProviderType {
+  INDEPENDENT_DRIVER
+  LOGISTICS_COMPANY
+  SUPPLIER_FLEET
+}
+
+enum VehicleType {
+  PICKUP
+  VAN
+  LIGHT_TRUCK
+  TIPPER_TRUCK
+  FLATBED_TRUCK
+  HEAVY_TRUCK
+  TRACTOR_TRAILER
+}
+
+enum ReviewStatus {
+  PUBLISHED
+  HIDDEN
+  FLAGGED
+}
+
+enum DisputeStatus {
+  OPEN
+  UNDER_REVIEW
+  RESOLVED
+  CLOSED
+}
+
+enum DisputeReason {
+  ITEM_NOT_DELIVERED
+  WRONG_ITEM
+  QUALITY_ISSUE
+  QUANTITY_SHORTFALL
+  LATE_DELIVERY
+  PAYMENT_ISSUE
+  OTHER
+}
+
+enum NotificationType {
+  ORDER_PLACED
+  ORDER_ACCEPTED
+  ORDER_REJECTED
+  ORDER_STATUS_CHANGED
+  PAYMENT_RECEIVED
+  PAYMENT_FAILED
+  CONTRACT_SENT
+  CONTRACT_ACCEPTED
+  CONTRACT_REJECTED
+  DELIVERY_SCHEDULED
+  DELIVERY_DISPATCHED
+  DELIVERY_COMPLETED
+  REVIEW_REMINDER
+  SUPPLIER_VERIFICATION_UPDATE
+  PROJECT_BUDGET_ALERT
+  DISPUTE_UPDATE
+}
+
+enum NotificationChannel {
+  IN_APP
+  EMAIL
+  SMS
+  WHATSAPP
+}
+
+enum NotificationDeliveryStatus {
+  PENDING
+  SENT
+  FAILED
+  SKIPPED_NOT_CONFIGURED
+}
+
+// ---------------------------------------------------------------------------
+// Reference data — Zambian geography (extensible, seeded)
+// ---------------------------------------------------------------------------
+
+model Province {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  code      String   @unique
+  latitude  Float
+  longitude Float
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  districts        District[]
+  customerProfiles CustomerProfile[]
+  supplierProfiles SupplierProfile[]
+  projects         Project[]
+  deliveries       Delivery[]
+  serviceAreas     ServiceArea[]
+}
+
+model District {
+  id         String   @id @default(uuid())
+  provinceId String
+  name       String
+  latitude   Float
+  longitude  Float
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  province         Province          @relation(fields: [provinceId], references: [id], onDelete: Cascade)
+  customerProfiles CustomerProfile[]
+  supplierProfiles SupplierProfile[]
+  projects         Project[]
+  deliveries       Delivery[]
+  serviceAreas     ServiceArea[]
+
+  @@unique([provinceId, name])
+  @@index([provinceId])
+}
+
+// ---------------------------------------------------------------------------
+// Identity, sessions and access control
+// ---------------------------------------------------------------------------
+
+model User {
+  id              String     @id @default(uuid())
+  email           String     @unique
+  /// Nullable so phone-first signup can be enabled without a schema change.
+  phone           String?    @unique
+  phoneVerifiedAt DateTime?
+  emailVerifiedAt DateTime?
+  passwordHash    String
+  name            String
+  role            UserRole   @default(CUSTOMER)
+  status          UserStatus @default(ACTIVE)
+  avatarKey       String?
+  lastLoginAt     DateTime?
+  failedLogins    Int        @default(0)
+  lockedUntil     DateTime?
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  deletedAt       DateTime?
+
+  sessions          Session[]
+  otpChallenges     OtpChallenge[]
+  customerProfile   CustomerProfile?
+  supplierProfile   SupplierProfile?
+  deliveryProvider  DeliveryProvider?
+  projects          Project[]
+  carts             Cart[]
+  orders            Order[]                @relation("CustomerOrders")
+  payments          Payment[]              @relation("CustomerPayments")
+  contracts         Contract[]
+  reviews           Review[]
+  notifications     Notification[]
+  auditLogs         AuditLog[]             @relation("AuditActor")
+  analyticsEvents   AnalyticsEvent[]
+  contractsAccepted ContractAcceptance[]
+  verificationsRun  SupplierVerification[] @relation("VerificationReviewer")
+  documentsReviewed SupplierDocument[]     @relation("DocumentReviewer")
+  disputesRaised    Dispute[]              @relation("DisputeRaisedBy")
+  disputesResolved  Dispute[]              @relation("DisputeResolvedBy")
+  settingsUpdated   PlatformSetting[]      @relation("SettingUpdatedBy")
+  budgetEntries     BudgetTransaction[]    @relation("BudgetTransactionAuthor")
+  walletEntries     WalletEntry[]          @relation("WalletEntryAuthor")
+  paletteAnalyses   PaletteAnalysis[]
+
+  @@index([role, status])
+  @@index([deletedAt])
+}
+
+model Session {
+  id        String   @id @default(uuid())
+  userId    String
+  /// SHA-256 of the opaque session token. The raw token only ever exists in the
+  /// user's httpOnly cookie, so a database leak cannot be replayed.
+  tokenHash String   @unique
+  expiresAt DateTime
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+/// Placeholder plumbing for phone/OTP verification. The challenge record and
+/// its verification flow exist now so an SMS provider can be wired in without
+/// touching the schema or the auth surface.
+model OtpChallenge {
+  id          String     @id @default(uuid())
+  userId      String?
+  destination String
+  purpose     OtpPurpose
+  codeHash    String
+  expiresAt   DateTime
+  consumedAt  DateTime?
+  attempts    Int        @default(0)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([destination, purpose])
+  @@index([expiresAt])
+}
+
+// ---------------------------------------------------------------------------
+// Profiles
+// ---------------------------------------------------------------------------
+
+model CustomerProfile {
+  id                    String             @id @default(uuid())
+  userId                String             @unique
+  phone                 String?
+  provinceId            String?
+  districtId            String?
+  buildingIntent        PropertyType?
+  budgetRangeMinMinor   Int?
+  budgetRangeMaxMinor   Int?
+  currentStage          ConstructionStage?
+  onboardingCompletedAt DateTime?
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  province Province? @relation(fields: [provinceId], references: [id], onDelete: SetNull)
+  district District? @relation(fields: [districtId], references: [id], onDelete: SetNull)
+
+  @@index([provinceId])
+}
+
+model SupplierProfile {
+  id           String  @id @default(uuid())
+  userId       String  @unique
+  businessName String
+  slug         String  @unique
+  logoKey      String?
+  description  String?
+  phone        String
+  email        String
+  provinceId   String
+  districtId   String?
+  address      String?
+
+  businessRegistrationStatus BusinessRegistrationStatus @default(NOT_PROVIDED)
+  registrationNumber         String?
+  taxpayerNumber             String?
+  verificationStatus         VerificationStatus         @default(UNVERIFIED)
+  verifiedAt                 DateTime?
+  yearsOperating             Int?
+
+  deliveryAvailable Boolean @default(false)
+  deliveryNotes     String?
+  minimumOrderMinor Int     @default(0)
+  /// Flat fee this supplier charges to deliver within its service area, and the
+  /// order value above which the supplier waives it (null = never waived).
+  deliveryBaseFeeMinor   Int  @default(0)
+  deliveryFreeAboveMinor Int?
+
+  ratingAverageBps Int @default(0) /// 0-50000 bps == 0.00-5.00 stars
+  ratingCount      Int @default(0)
+  completedOrders  Int @default(0)
+  cancelledOrders  Int @default(0)
+  totalOrders      Int @default(0)
+  trustScore       Int @default(0) /// 0-100, recomputed by lib/domain/trust-score.ts
+
+  averageResponseMinutes Int?
+
+  /// Business-model levers. Null commission falls back to the platform default
+  /// held in PlatformSetting so rates are never hard-coded.
+  commissionRateBps Int?
+  subscriptionTier  SubscriptionTier @default(FREE)
+  isPromoted        Boolean          @default(false)
+
+  /// Seed/demo suppliers are flagged so the UI can label them and they can be
+  /// excluded from production data.
+  isDemo          Boolean   @default(false)
+  isSuspended     Boolean   @default(false)
+  suspendedReason String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  deletedAt       DateTime?
+
+  user          User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  province      Province               @relation(fields: [provinceId], references: [id])
+  district      District?              @relation(fields: [districtId], references: [id], onDelete: SetNull)
+  categories    ProductCategory[]      @relation("SupplierCategories")
+  products      Product[]
+  orders        Order[]
+  payments      Payment[]              @relation("SupplierPayments")
+  contracts     Contract[]
+  reviews       Review[]
+  documents     SupplierDocument[]
+  verifications SupplierVerification[]
+  disputes      Dispute[]
+
+  @@index([provinceId, verificationStatus])
+  @@index([verificationStatus])
+  @@index([deletedAt])
+  @@index([businessName(ops: raw("gin_trgm_ops"))], type: Gin)
+}
+
+model SupplierVerification {
+  id           String             @id @default(uuid())
+  supplierId   String
+  status       VerificationStatus @default(PENDING)
+  submittedAt  DateTime           @default(now())
+  reviewedById String?
+  reviewedAt   DateTime?
+  decisionNote String?
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  supplier   SupplierProfile @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  reviewedBy User?           @relation("VerificationReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@index([supplierId])
+  @@index([status])
+}
+
+model SupplierDocument {
+  id           String               @id @default(uuid())
+  supplierId   String
+  type         SupplierDocumentType
+  fileKey      String
+  fileName     String
+  mimeType     String
+  sizeBytes    Int
+  reviewStatus DocumentReviewStatus @default(PENDING)
+  reviewNote   String?
+  reviewedById String?
+  reviewedAt   DateTime?
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+
+  supplier   SupplierProfile @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  reviewedBy User?           @relation("DocumentReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@index([supplierId])
+  @@index([reviewStatus])
+}
+
+// ---------------------------------------------------------------------------
+// Projects and budgets
+// ---------------------------------------------------------------------------
+
+model Project {
+  id                   String            @id @default(uuid())
+  customerId           String
+  name                 String
+  propertyType         PropertyType
+  constructionType     ConstructionType  @default(NEW_BUILD)
+  provinceId           String
+  districtId           String?
+  locationDetail       String?
+  bedrooms             Int?
+  approximateSizeSqm   Int?
+  stage                ConstructionStage @default(PLANNING)
+  status               ProjectStatus     @default(PLANNING)
+  estimatedBudgetMinor Int               @default(0)
+  startDate            DateTime?
+  targetCompletionDate DateTime?
+  description          String?
+  imageKey             String?
+  progressPercent      Int               @default(0)
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+  deletedAt            DateTime?
+
+  customer        User                @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  province        Province            @relation(fields: [provinceId], references: [id])
+  district        District?           @relation(fields: [districtId], references: [id], onDelete: SetNull)
+  budget          ProjectBudget?
+  transactions    BudgetTransaction[]
+  walletEntries   WalletEntry[]
+  carts           Cart[]
+  orders          Order[]
+  contracts       Contract[]
+  payments        Payment[]
+  paletteAnalyses PaletteAnalysis[]
+
+  @@index([customerId, status])
+  @@index([deletedAt])
+}
+
+model ProjectBudget {
+  id        String   @id @default(uuid())
+  projectId String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project    Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  categories BudgetCategory[]
+}
+
+model BudgetCategory {
+  id           String            @id @default(uuid())
+  budgetId     String
+  key          BudgetCategoryKey
+  plannedMinor Int               @default(0)
+  sortOrder    Int               @default(0)
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  budget       ProjectBudget       @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+  transactions BudgetTransaction[]
+
+  @@unique([budgetId, key])
+  @@index([budgetId])
+}
+
+model BudgetTransaction {
+  id          String                @id @default(uuid())
+  projectId   String
+  categoryId  String?
+  type        BudgetTransactionType
+  amountMinor Int
+  description String
+  occurredAt  DateTime              @default(now())
+  orderId     String?
+  paymentId   String?
+  createdById String?
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+
+  project   Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  category  BudgetCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  order     Order?          @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  payment   Payment?        @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+  createdBy User?           @relation("BudgetTransactionAuthor", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@unique([orderId, type])
+  @@index([projectId, occurredAt])
+  @@index([categoryId])
+}
+
+/// Signed ledger. DEPOSIT_RECORDED / ALLOCATION_RELEASED / REFUND_RECORDED are
+/// positive; ALLOCATION is negative. The balance is always derived, never stored.
+model WalletEntry {
+  id          String          @id @default(uuid())
+  projectId   String
+  type        WalletEntryType
+  amountMinor Int
+  description String
+  reference   String?
+  orderId     String?
+  paymentId   String?
+  createdById String?
+  createdAt   DateTime        @default(now())
+
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  order     Order?   @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  payment   Payment? @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+  createdBy User?    @relation("WalletEntryAuthor", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([projectId, createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// Catalogue
+// ---------------------------------------------------------------------------
+
+model ProductCategory {
+  id          String   @id @default(uuid())
+  parentId    String?
+  name        String
+  slug        String   @unique
+  description String?
+  iconName    String?
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  parent    ProductCategory?  @relation("CategoryTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children  ProductCategory[] @relation("CategoryTree")
+  products  Product[]
+  suppliers SupplierProfile[] @relation("SupplierCategories")
+
+  @@index([parentId])
+}
+
+model Product {
+  id                   String        @id @default(uuid())
+  supplierId           String
+  categoryId           String
+  name                 String
+  slug                 String
+  description          String?
+  brand                String?
+  unit                 ProductUnit
+  priceMinor           Int
+  minimumOrderQuantity Int           @default(1)
+  stockQuantity        Int           @default(0)
+  lowStockThreshold    Int           @default(0)
+  deliveryAvailable    Boolean       @default(false)
+  status               ProductStatus @default(PENDING_APPROVAL)
+  isDemo               Boolean       @default(false)
+  rejectionReason      String?
+  viewCount            Int           @default(0)
+  purchaseCount        Int           @default(0)
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+  deletedAt            DateTime?
+
+  supplier      SupplierProfile @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  category      ProductCategory @relation(fields: [categoryId], references: [id])
+  images        ProductImage[]
+  inventory     Inventory?
+  cartItems     CartItem[]
+  orderItems    OrderItem[]
+  contractItems ContractItem[]
+
+  @@unique([supplierId, slug])
+  @@index([categoryId, status])
+  @@index([supplierId, status])
+  @@index([status, priceMinor])
+  @@index([deletedAt])
+  @@index([name(ops: raw("gin_trgm_ops"))], type: Gin)
+  @@index([brand(ops: raw("gin_trgm_ops"))], type: Gin)
+}
+
+model ProductImage {
+  id        String   @id @default(uuid())
+  productId String
+  fileKey   String
+  altText   String?
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+}
+
+/// Split from Product so stock movements can be audited independently of
+/// catalogue edits.
+model Inventory {
+  id               String    @id @default(uuid())
+  productId        String    @unique
+  quantityOnHand   Int       @default(0)
+  quantityReserved Int       @default(0)
+  restockedAt      DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+// ---------------------------------------------------------------------------
+// Cart
+// ---------------------------------------------------------------------------
+
+model Cart {
+  id           String    @id @default(uuid())
+  userId       String
+  projectId    String?
+  checkedOutAt DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  user    User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project Project?   @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  items   CartItem[]
+
+  @@index([userId, checkedOutAt])
+}
+
+model CartItem {
+  id        String   @id @default(uuid())
+  cartId    String
+  productId String
+  quantity  Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  cart    Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([cartId, productId])
+  @@index([cartId])
+}
+
+// ---------------------------------------------------------------------------
+// Orders
+// ---------------------------------------------------------------------------
+
+model Order {
+  id          String      @id @default(uuid())
+  orderNumber String      @unique
+  customerId  String
+  supplierId  String
+  projectId   String?
+  status      OrderStatus @default(DRAFT)
+
+  subtotalMinor     Int
+  deliveryFeeMinor  Int @default(0)
+  totalMinor        Int
+  /// Snapshot of the commission that applied when the order was placed, so
+  /// later rate changes never rewrite history.
+  commissionRateBps Int @default(0)
+  commissionMinor   Int @default(0)
+
+  fulfilmentMethod   FulfilmentMethod @default(SUPPLIER_DELIVERY)
+  customerNote       String?
+  supplierNote       String?
+  cancellationReason String?
+
+  placedAt    DateTime?
+  confirmedAt DateTime?
+  completedAt DateTime?
+  cancelledAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  customer      User                @relation("CustomerOrders", fields: [customerId], references: [id], onDelete: Cascade)
+  supplier      SupplierProfile     @relation(fields: [supplierId], references: [id])
+  project       Project?            @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  items         OrderItem[]
+  events        OrderEvent[]
+  payments      Payment[]
+  delivery      Delivery?
+  contract      Contract?
+  review        Review?
+  dispute       Dispute?
+  walletEntries WalletEntry[]
+  budgetEntries BudgetTransaction[]
+
+  @@index([customerId, status])
+  @@index([supplierId, status])
+  @@index([projectId])
+  @@index([createdAt])
+}
+
+model OrderItem {
+  id        String  @id @default(uuid())
+  orderId   String
+  productId String?
+
+  /// Snapshot of the product at purchase time — orders must remain readable
+  /// even if the supplier edits or removes the product.
+  productName    String
+  brand          String?
+  unit           ProductUnit
+  unitPriceMinor Int
+  quantity       Int
+  lineTotalMinor Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  order   Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([orderId])
+  @@index([productId])
+}
+
+model OrderEvent {
+  id          String       @id @default(uuid())
+  orderId     String
+  fromStatus  OrderStatus?
+  toStatus    OrderStatus
+  note        String?
+  actorUserId String?
+  actorRole   UserRole?
+  createdAt   DateTime     @default(now())
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId, createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// Payments — Payment is current state, PaymentTransaction is the immutable log
+// ---------------------------------------------------------------------------
+
+model Payment {
+  id         String  @id @default(uuid())
+  reference  String  @unique
+  orderId    String?
+  projectId  String?
+  customerId String
+  supplierId String?
+
+  method    PaymentMethod
+  direction PaymentDirection @default(CUSTOMER_TO_SUPPLIER)
+  status    PaymentStatus    @default(INITIATED)
+
+  amountMinor Int
+  currency    String @default("ZMW")
+
+  provider          String?
+  providerReference String?
+  /// Guarantees a retried checkout cannot create a duplicate payment.
+  idempotencyKey    String  @unique
+
+  failureReason String?
+  /// Set only when a human confirmed money actually arrived (offline methods).
+  confirmedById String?
+  confirmedAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  order         Order?               @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  project       Project?             @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  customer      User                 @relation("CustomerPayments", fields: [customerId], references: [id], onDelete: Cascade)
+  supplier      SupplierProfile?     @relation("SupplierPayments", fields: [supplierId], references: [id], onDelete: SetNull)
+  transactions  PaymentTransaction[]
+  walletEntries WalletEntry[]
+  budgetEntries BudgetTransaction[]
+
+  @@index([orderId])
+  @@index([customerId, status])
+  @@index([projectId])
+  @@index([status, createdAt])
+}
+
+/// Append-only. Rows are never updated or deleted; each status change appends a
+/// new row, which gives payments a tamper-evident history.
+model PaymentTransaction {
+  id                String         @id @default(uuid())
+  paymentId         String
+  fromStatus        PaymentStatus?
+  toStatus          PaymentStatus
+  amountMinor       Int
+  provider          String?
+  providerReference String?
+  /// Raw provider payload, retained for reconciliation.
+  metadata          Json?
+  actorUserId       String?
+  occurredAt        DateTime       @default(now())
+
+  payment Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+
+  @@index([paymentId, occurredAt])
+}
+
+// ---------------------------------------------------------------------------
+// Digital contracts
+// ---------------------------------------------------------------------------
+
+model Contract {
+  id             String         @id @default(uuid())
+  contractNumber String         @unique
+  version        Int            @default(1)
+  orderId        String?        @unique
+  customerId     String
+  supplierId     String
+  projectId      String?
+  status         ContractStatus @default(DRAFT)
+  /// Which party put the agreement forward. Only the *other* party can accept
+  /// or reject it, so this cannot be inferred from the acceptance rows alone.
+  createdByRole  ContractPartyRole @default(CUSTOMER)
+
+  subtotalMinor    Int
+  depositMinor     Int @default(0)
+  balanceMinor     Int @default(0)
+  deliveryFeeMinor Int @default(0)
+  totalMinor       Int
+
+  deliveryDate      DateTime?
+  deliveryLocation  String?
+  terms             String
+  cancellationTerms String
+  notes             String?
+
+  sentAt      DateTime?
+  respondedAt DateTime?
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  order       Order?               @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  customer    User                 @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  supplier    SupplierProfile      @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  project     Project?             @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  items       ContractItem[]
+  acceptances ContractAcceptance[]
+
+  @@index([customerId, status])
+  @@index([supplierId, status])
+}
+
+model ContractItem {
+  id             String      @id @default(uuid())
+  contractId     String
+  productId      String?
+  description    String
+  unit           ProductUnit
+  quantity       Int
+  unitPriceMinor Int
+  lineTotalMinor Int
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  contract Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  product  Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([contractId])
+}
+
+/// Acceptance evidence. Version is captured so an amended contract cannot
+/// silently inherit an earlier signature.
+model ContractAcceptance {
+  id              String            @id @default(uuid())
+  contractId      String
+  userId          String
+  role            ContractPartyRole
+  contractVersion Int
+  accepted        Boolean
+  signatureName   String
+  ipAddress       String?
+  userAgent       String?
+  acceptedAt      DateTime          @default(now())
+
+  contract Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([contractId, role, contractVersion])
+  @@index([contractId])
+}
+
+// ---------------------------------------------------------------------------
+// Delivery
+// ---------------------------------------------------------------------------
+
+model Delivery {
+  id      String         @id @default(uuid())
+  orderId String         @unique
+  method  DeliveryMethod
+  status  DeliveryStatus @default(REQUESTED)
+
+  addressLine    String
+  provinceId     String
+  districtId     String?
+  locationDetail String?
+  contactName    String
+  contactPhone   String
+  instructions   String?
+
+  feeMinor Int @default(0)
+
+  providerId    String?
+  vehicleId     String?
+  scheduledFor  DateTime?
+  pickedUpAt    DateTime?
+  deliveredAt   DateTime?
+  failureReason String?
+
+  proofFileKey String?
+  receivedBy   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  order    Order             @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  province Province          @relation(fields: [provinceId], references: [id])
+  district District?         @relation(fields: [districtId], references: [id], onDelete: SetNull)
+  provider DeliveryProvider? @relation(fields: [providerId], references: [id], onDelete: SetNull)
+  vehicle  Vehicle?          @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
+  events   DeliveryEvent[]
+
+  @@index([providerId, status])
+  @@index([status])
+}
+
+model DeliveryEvent {
+  id          String          @id @default(uuid())
+  deliveryId  String
+  fromStatus  DeliveryStatus?
+  toStatus    DeliveryStatus
+  note        String?
+  actorUserId String?
+  createdAt   DateTime        @default(now())
+
+  delivery Delivery @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+
+  @@index([deliveryId, createdAt])
+}
+
+model DeliveryProvider {
+  id           String               @id @default(uuid())
+  userId       String               @unique
+  businessName String
+  type         DeliveryProviderType @default(INDEPENDENT_DRIVER)
+  phone        String
+  description  String?
+
+  baseFeeMinor      Int @default(0)
+  perKilometreMinor Int @default(0)
+
+  verificationStatus  VerificationStatus @default(UNVERIFIED)
+  isAcceptingJobs     Boolean            @default(true)
+  ratingAverageBps    Int                @default(0)
+  ratingCount         Int                @default(0)
+  completedDeliveries Int                @default(0)
+  isDemo              Boolean            @default(false)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vehicles     Vehicle[]
+  serviceAreas ServiceArea[]
+  deliveries   Delivery[]
+
+  @@index([verificationStatus, isAcceptingJobs])
+}
+
+model Vehicle {
+  id                  String      @id @default(uuid())
+  providerId          String
+  type                VehicleType
+  registration        String
+  description         String?
+  capacityKg          Int?
+  capacityCubicMetres Int?
+  isActive            Boolean     @default(true)
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+
+  provider   DeliveryProvider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  deliveries Delivery[]
+
+  @@unique([providerId, registration])
+  @@index([providerId])
+}
+
+model ServiceArea {
+  id         String   @id @default(uuid())
+  providerId String
+  provinceId String
+  districtId String?
+  feeMinor   Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  provider DeliveryProvider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  province Province         @relation(fields: [provinceId], references: [id], onDelete: Cascade)
+  district District?        @relation(fields: [districtId], references: [id], onDelete: Cascade)
+
+  @@unique([providerId, provinceId, districtId])
+  @@index([provinceId])
+}
+
+// ---------------------------------------------------------------------------
+// Reviews, notifications, disputes
+// ---------------------------------------------------------------------------
+
+/// One review per completed order, enforced by the unique orderId. An admin can
+/// set `amendmentAllowed` to let a customer revise an existing review.
+model Review {
+  id                   String       @id @default(uuid())
+  orderId              String       @unique
+  customerId           String
+  supplierId           String
+  rating               Int
+  productQualityRating Int?
+  priceRating          Int?
+  deliveryRating       Int?
+  communicationRating  Int?
+  reliabilityRating    Int?
+  comment              String?
+  status               ReviewStatus @default(PUBLISHED)
+  amendmentAllowed     Boolean      @default(false)
+  hiddenReason         String?
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
+
+  order    Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  customer User            @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  supplier SupplierProfile @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+
+  @@index([supplierId, status])
+  @@index([customerId])
+}
+
+model Notification {
+  id             String                     @id @default(uuid())
+  userId         String
+  type           NotificationType
+  channel        NotificationChannel        @default(IN_APP)
+  title          String
+  body           String
+  linkUrl        String?
+  payload        Json?
+  deliveryStatus NotificationDeliveryStatus @default(PENDING)
+  deliveryError  String?
+  readAt         DateTime?
+  createdAt      DateTime                   @default(now())
+  updatedAt      DateTime                   @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt])
+  @@index([userId, createdAt])
+}
+
+model Dispute {
+  id           String        @id @default(uuid())
+  orderId      String        @unique
+  raisedById   String
+  supplierId   String
+  reason       DisputeReason
+  description  String
+  status       DisputeStatus @default(OPEN)
+  resolution   String?
+  resolvedById String?
+  resolvedAt   DateTime?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  order      Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  raisedBy   User            @relation("DisputeRaisedBy", fields: [raisedById], references: [id], onDelete: Cascade)
+  supplier   SupplierProfile @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  resolvedBy User?           @relation("DisputeResolvedBy", fields: [resolvedById], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([supplierId])
+}
+
+// ---------------------------------------------------------------------------
+// Platform plumbing
+// ---------------------------------------------------------------------------
+
+model AuditLog {
+  id            String    @id @default(uuid())
+  actorUserId   String?
+  actorRole     UserRole?
+  action        String
+  resourceType  String
+  resourceId    String?
+  previousValue Json?
+  newValue      Json?
+  ipAddress     String?
+  userAgent     String?
+  createdAt     DateTime  @default(now())
+
+  actor User? @relation("AuditActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([actorUserId, createdAt])
+  @@index([resourceType, resourceId])
+  @@index([action, createdAt])
+}
+
+model AnalyticsEvent {
+  id          String   @id @default(uuid())
+  name        String
+  userId      String?
+  anonymousId String?
+  properties  Json?
+  occurredAt  DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([name, occurredAt])
+  @@index([userId])
+}
+
+/// Admin-editable platform configuration (commission rates, subscription
+/// pricing, budget-alert thresholds). Nothing commercial is hard-coded.
+model PlatformSetting {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  value       Json
+  description String
+  updatedById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  updatedBy User? @relation("SettingUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+}
+
+/// Shared rate-limit buckets. Correct across serverless instances, unlike an
+/// in-memory map.
+model RateLimitBucket {
+  key       String   @id
+  tokens    Int
+  resetAt   DateTime
+  updatedAt DateTime @updatedAt
+
+  @@index([resetAt])
+}
+
+/// Result of the building-photo finish analyser: extracted dominant colours
+/// plus the recommended finish palette. Stored so customers can revisit past
+/// analyses and so the recommendation engine can be evaluated over time.
+model PaletteAnalysis {
+  id              String   @id @default(uuid())
+  userId          String
+  projectId       String?
+  imageFileKey    String
+  dominantColours Json
+  recommendation  Json
+  createdAt       DateTime @default(now())
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([projectId])
+}
