@@ -9,6 +9,8 @@
  * reference categories by row, so nothing else needs to know.
  */
 
+import type { BudgetCategoryKey } from "@prisma/client";
+
 export type CategorySeed = {
   slug: string;
   name: string;
@@ -253,6 +255,51 @@ export const CATEGORY_SLUGS = PRODUCT_CATEGORIES.map((category) => category.slug
 
 export function findCategoryBySlug(slug: string): CategorySeed | undefined {
   return PRODUCT_CATEGORIES.find((category) => category.slug === slug);
+}
+
+/**
+ * Which budget line a purchase from each category lands on.
+ *
+ * This is what makes an order actually useful to someone tracking a build: buy
+ * roofing sheets and the roofing line moves, without anyone re-typing the
+ * figure. Materials that span several stages (cement, sand, hardware) fall to
+ * MISCELLANEOUS rather than guess wrongly, and the customer can move the
+ * transaction afterwards.
+ */
+export const CATEGORY_BUDGET_KEYS: Record<string, BudgetCategoryKey> = {
+  cement: "MISCELLANEOUS",
+  "bricks-and-blocks": "WALLING",
+  sand: "MISCELLANEOUS",
+  "quarry-and-stones": "FOUNDATION",
+  "steel-and-reinforcement": "FOUNDATION",
+  timber: "ROOFING",
+  roofing: "ROOFING",
+  plumbing: "PLUMBING",
+  electrical: "ELECTRICAL",
+  "tiles-and-flooring": "FLOORING",
+  paint: "PAINTING",
+  "doors-and-windows": "DOORS_AND_WINDOWS",
+  hardware: "MISCELLANEOUS",
+  "water-systems": "PLUMBING",
+  "other-construction-materials": "MISCELLANEOUS",
+};
+
+/**
+ * Budget line for a category, resolving a subcategory through its parent. Falls
+ * back to MISCELLANEOUS for anything unmapped, so an order is always accounted
+ * for somewhere.
+ */
+export function budgetCategoryKeyFor(
+  categorySlug: string | null | undefined,
+  parentSlug?: string | null,
+): BudgetCategoryKey {
+  if (categorySlug && CATEGORY_BUDGET_KEYS[categorySlug]) {
+    return CATEGORY_BUDGET_KEYS[categorySlug];
+  }
+  if (parentSlug && CATEGORY_BUDGET_KEYS[parentSlug]) {
+    return CATEGORY_BUDGET_KEYS[parentSlug];
+  }
+  return "MISCELLANEOUS";
 }
 
 /** Search suggestions shown under the marketplace search box. */

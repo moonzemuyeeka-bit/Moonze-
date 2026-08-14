@@ -166,6 +166,7 @@ export const AUTHENTICATED_ROUTE_PREFIXES = [
   "/cart",
   "/checkout",
   "/orders",
+  "/agreements",
   "/notifications",
   "/account",
 ] as const;

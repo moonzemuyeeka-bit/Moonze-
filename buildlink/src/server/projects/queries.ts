@@ -303,7 +303,10 @@ export async function getCustomerDashboard(user: SessionUser): Promise<CustomerD
           supplier: { select: { businessName: true } },
         },
       }),
-      db.contract.count({ where: { customerId: user.id, status: "SENT" } }),
+      // Agreements waiting on *this* customer, not ones they sent themselves.
+      db.contract.count({
+        where: { customerId: user.id, status: "SENT", createdByRole: "SUPPLIER" },
+      }),
       db.notification.count({ where: { userId: user.id, readAt: null, channel: "IN_APP" } }),
       db.cartItem.count({ where: { cart: { userId: user.id, checkedOutAt: null } } }),
       db.walletEntry.findMany({

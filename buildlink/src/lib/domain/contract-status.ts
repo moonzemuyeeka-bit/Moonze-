@@ -40,6 +40,11 @@ export function canRespondToContract(
   return responder !== createdBy;
 }
 
+/** The party who must still be sent the agreement, or accept it. */
+export function counterpartyOf(role: ContractPartyRole): ContractPartyRole {
+  return role === "CUSTOMER" ? "SUPPLIER" : "CUSTOMER";
+}
+
 export const CONTRACT_LEGAL_NOTICE =
   "This is a digital record of what the customer and supplier agreed on BuildLink. " +
   "It has not been reviewed by a lawyer and BuildLink makes no representation that it " +

@@ -1016,6 +1016,9 @@ model Contract {
   supplierId     String
   projectId      String?
   status         ContractStatus @default(DRAFT)
+  /// Which party put the agreement forward. Only the *other* party can accept
+  /// or reject it, so this cannot be inferred from the acceptance rows alone.
+  createdByRole  ContractPartyRole @default(CUSTOMER)
 
   subtotalMinor    Int
   depositMinor     Int @default(0)
