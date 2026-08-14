@@ -1,0 +1,318 @@
+// Koko's Bookings — relational schema.
+//
+// Money is stored as integer ngwee (1 kwacha = 100 ngwee) so that no rounding
+// error can ever creep into deposits or balances. Use `lib/money.ts` to format.
+//
+// Appointment dates are stored as a calendar date (`@db.Date`) and times as
+// "HH:mm" strings in the business timezone (see BusinessSettings.timezone).
+// This keeps the schedule stable regardless of server timezone.
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  STAFF
+}
+
+enum BookingStatus {
+  PENDING_PAYMENT
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+  EXPIRED
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  SUCCESSFUL
+  FAILED
+  CANCELLED
+  EXPIRED
+  REFUNDED
+}
+
+enum PaymentMethod {
+  MOBILE_MONEY
+  BANK_CARD
+}
+
+enum DayAvailabilityStatus {
+  AVAILABLE
+  UNAVAILABLE
+}
+
+enum TimeSlotStatus {
+  OPEN
+  BLOCKED
+}
+
+enum NotificationEvent {
+  BOOKING_CREATED
+  PAYMENT_SUCCESSFUL
+  BOOKING_CONFIRMED
+  BOOKING_CANCELLED
+  APPOINTMENT_REMINDER
+  APPOINTMENT_COMPLETED
+}
+
+enum NotificationChannel {
+  WHATSAPP
+  SMS
+  EMAIL
+  CONSOLE
+}
+
+enum NotificationStatus {
+  QUEUED
+  SENT
+  FAILED
+  SKIPPED
+}
+
+enum ReminderKind {
+  DAY_BEFORE
+  HOURS_BEFORE
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  phone        String?
+  role         UserRole @default(ADMIN)
+  passwordHash String
+  lastLoginAt  DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("users")
+}
+
+model Customer {
+  id        String    @id @default(cuid())
+  name      String
+  phone     String    @unique
+  email     String?
+  notes     String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  bookings  Booking[]
+
+  @@index([name])
+  @@map("customers")
+}
+
+model Service {
+  id              String    @id @default(cuid())
+  name            String
+  slug            String    @unique
+  description     String
+  priceNgwee      Int
+  priceFrom       Boolean   @default(false) // renders as "From K280"
+  durationMinutes Int
+  active          Boolean   @default(true)
+  featured        Boolean   @default(false)
+  sortOrder       Int       @default(0)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  bookings        Booking[]
+
+  @@index([active, sortOrder])
+  @@map("services")
+}
+
+model Booking {
+  id                   String        @id @default(cuid())
+  bookingReference     String        @unique
+  customerId           String
+  serviceId            String
+  // Snapshot of the service at booking time so later price/name edits never
+  // rewrite history.
+  serviceName          String
+  appointmentDate      DateTime      @db.Date
+  startTime            String // "HH:mm" business-local
+  endTime              String // "HH:mm" business-local (includes no buffer)
+  bufferMinutes        Int           @default(0)
+  status               BookingStatus @default(PENDING_PAYMENT)
+  totalNgwee           Int
+  depositNgwee         Int
+  remainingNgwee       Int
+  policyAccepted       Boolean       @default(false)
+  policyAcceptedAt     DateTime?
+  policySnapshot       String
+  notes                String?
+  reservationExpiresAt DateTime?
+  confirmedAt          DateTime?
+  cancelledAt          DateTime?
+  cancellationReason   String?
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+
+  customer      Customer       @relation(fields: [customerId], references: [id])
+  service       Service        @relation(fields: [serviceId], references: [id])
+  payments      Payment[]
+  reminders     Reminder[]
+  notifications Notification[]
+
+  @@index([appointmentDate, startTime])
+  @@index([status])
+  @@index([customerId])
+  @@map("bookings")
+}
+
+model Payment {
+  id                String        @id @default(cuid())
+  bookingId         String
+  amountNgwee       Int
+  currency          String        @default("ZMW")
+  method            PaymentMethod
+  provider          String
+  providerReference String        @unique
+  status            PaymentStatus @default(PENDING)
+  // Non-sensitive display metadata only (e.g. wallet MSISDN, card brand +
+  // last four). Never card numbers, CVV or PINs.
+  payerReference    String?
+  instrumentBrand   String?
+  instrumentLast4   String?
+  failureReason     String?
+  paidAt            DateTime?
+  refundedNgwee     Int           @default(0)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  booking Booking            @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  events  PaymentEvent[]
+
+  @@index([bookingId])
+  @@index([status])
+  @@map("payments")
+}
+
+/// Append-only audit trail of every payment state transition.
+model PaymentEvent {
+  id         String         @id @default(cuid())
+  paymentId  String
+  fromStatus PaymentStatus?
+  toStatus   PaymentStatus
+  source     String // "api" | "webhook" | "poll" | "sweeper"
+  detail     String?
+  createdAt  DateTime       @default(now())
+
+  payment Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+
+  @@index([paymentId])
+  @@map("payment_events")
+}
+
+/// Per-date override of the weekly working hours.
+model Availability {
+  id        String                @id @default(cuid())
+  date      DateTime              @unique @db.Date
+  status    DayAvailabilityStatus
+  reason    String?
+  createdAt DateTime              @default(now())
+  updatedAt DateTime              @updatedAt
+
+  @@map("availability")
+}
+
+/// Explicit slots for a date. When any row exists for a date it replaces the
+/// grid generated from working hours, which lets the owner hand-craft a day.
+model TimeSlot {
+  id        String         @id @default(cuid())
+  date      DateTime       @db.Date
+  startTime String
+  endTime   String
+  status    TimeSlotStatus @default(OPEN)
+  note      String?
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  @@unique([date, startTime])
+  @@index([date])
+  @@map("time_slots")
+}
+
+model WorkingHours {
+  id        String   @id @default(cuid())
+  dayOfWeek Int      @unique // 0 = Sunday … 6 = Saturday
+  openTime  String
+  closeTime String
+  closed    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("working_hours")
+}
+
+/// Single-row table (id = "default") holding owner-configurable business rules.
+model BusinessSettings {
+  id                    String   @id @default("default")
+  businessName          String
+  businessPhone         String
+  businessEmail         String
+  currency              String   @default("ZMW")
+  timezone              String   @default("Africa/Lusaka")
+  depositNgwee          Int      @default(5000)
+  slotIntervalMinutes   Int      @default(30)
+  bufferMinutes         Int      @default(15)
+  bookingWindowDays     Int      @default(60)
+  minNoticeHours        Int      @default(2)
+  reservationMinutes    Int      @default(10)
+  maxDailyBookings      Int      @default(6)
+  cancellationPolicy    String
+  depositPolicy         String
+  notifyWhatsapp        Boolean  @default(true)
+  notifySms             Boolean  @default(true)
+  notifyEmail           Boolean  @default(true)
+  reminderDayBefore     Boolean  @default(true)
+  reminderHoursBefore   Int      @default(2)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@map("business_settings")
+}
+
+model Notification {
+  id        String              @id @default(cuid())
+  bookingId String?
+  event     NotificationEvent
+  channel   NotificationChannel
+  recipient String
+  message   String
+  status    NotificationStatus  @default(QUEUED)
+  error     String?
+  sentAt    DateTime?
+  createdAt DateTime            @default(now())
+
+  booking Booking? @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+
+  @@index([bookingId])
+  @@map("notifications")
+}
+
+model Reminder {
+  id           String       @id @default(cuid())
+  bookingId    String
+  kind         ReminderKind
+  scheduledFor DateTime
+  sentAt       DateTime?
+  cancelledAt  DateTime?
+  createdAt    DateTime     @default(now())
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@unique([bookingId, kind])
+  @@index([scheduledFor, sentAt])
+  @@map("reminders")
+}
