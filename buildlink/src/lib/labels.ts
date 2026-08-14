@@ -1,9 +1,11 @@
 import type {
   BudgetCategoryKey,
   BudgetTransactionType,
+  BusinessRegistrationStatus,
   ConstructionStage,
   ConstructionType,
   ContractStatus,
+  DocumentReviewStatus,
   DeliveryMethod,
   DeliveryProviderType,
   DeliveryStatus,
@@ -19,6 +21,7 @@ import type {
   ProjectStatus,
   PropertyType,
   SubscriptionTier,
+  SupplierDocumentType,
   UserRole,
   UserStatus,
   VehicleType,
@@ -339,6 +342,51 @@ export const VERIFICATION_STATUS_EXPLAINERS: Record<VerificationStatus, string> 
   VERIFIED: "BuildLink reviewed this business's registration documents.",
   REJECTED: "BuildLink could not confirm this business's documents.",
   SUSPENDED: "Trading is suspended while BuildLink reviews reported issues.",
+};
+
+export const SUPPLIER_DOCUMENT_TYPES = [
+  "BUSINESS_REGISTRATION_CERTIFICATE",
+  "TAX_CLEARANCE",
+  "DIRECTOR_IDENTIFICATION",
+  "PROOF_OF_ADDRESS",
+  "OTHER",
+] as const satisfies readonly SupplierDocumentType[];
+
+export const SUPPLIER_DOCUMENT_TYPE_LABELS: Record<SupplierDocumentType, string> = {
+  BUSINESS_REGISTRATION_CERTIFICATE: "PACRA certificate of incorporation",
+  TAX_CLEARANCE: "ZRA tax clearance certificate",
+  DIRECTOR_IDENTIFICATION: "Director's NRC or passport",
+  PROOF_OF_ADDRESS: "Proof of business address",
+  OTHER: "Other supporting document",
+};
+
+/** What each document is for, in the supplier's own terms. */
+export const SUPPLIER_DOCUMENT_TYPE_HINTS: Record<SupplierDocumentType, string> = {
+  BUSINESS_REGISTRATION_CERTIFICATE:
+    "The certificate PACRA issued when the business was registered.",
+  TAX_CLEARANCE: "A current tax clearance certificate from ZRA.",
+  DIRECTOR_IDENTIFICATION: "A clear photograph or scan of the NRC or passport of a director.",
+  PROOF_OF_ADDRESS: "A utility bill, lease or council letter showing the trading address.",
+  OTHER: "Anything else that helps BuildLink confirm the business is real.",
+};
+
+export const DOCUMENT_REVIEW_STATUS_LABELS: Record<DocumentReviewStatus, string> = {
+  PENDING: "Awaiting review",
+  APPROVED: "Accepted",
+  REJECTED: "Rejected",
+};
+
+export const DOCUMENT_REVIEW_STATUS_TONES: Record<DocumentReviewStatus, BadgeTone> = {
+  PENDING: "warning",
+  APPROVED: "success",
+  REJECTED: "danger",
+};
+
+export const BUSINESS_REGISTRATION_STATUS_LABELS: Record<BusinessRegistrationStatus, string> = {
+  NOT_PROVIDED: "No registration details given",
+  SELF_DECLARED: "Registration number self-declared",
+  DOCUMENTS_SUBMITTED: "Registration documents submitted",
+  VERIFIED: "Registration verified by BuildLink",
 };
 
 export const SUBSCRIPTION_TIER_LABELS: Record<SubscriptionTier, string> = {

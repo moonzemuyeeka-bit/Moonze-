@@ -16,6 +16,7 @@ import {
   newOrderNumber,
   recordProjectCommitment,
 } from "@/server/orders/service";
+import { mirrorDeliveryForOrderStatus } from "@/server/delivery/service";
 import { buildOrderDrafts } from "@/lib/domain/cart";
 import { actorCanTransitionOrder, assertOrderTransition } from "@/lib/domain/order-status";
 import { ANALYTICS_EVENTS, track } from "@/lib/services/analytics";
@@ -380,6 +381,15 @@ export async function updateOrderStatusAction(
       to: parsed.data.status,
       note: parsed.data.note ?? null,
       actor: user,
+    });
+
+    // A supplier fulfilling an order themselves works from the order screen, so
+    // their own delivery record follows the order rather than lagging behind it.
+    await mirrorDeliveryForOrderStatus({
+      orderId: order.id,
+      orderStatus: parsed.data.status,
+      actor: user,
+      note: parsed.data.note ?? null,
     });
 
     revalidateOrder(order.id);

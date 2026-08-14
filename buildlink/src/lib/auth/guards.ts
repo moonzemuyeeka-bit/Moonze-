@@ -100,7 +100,7 @@ export async function requirePageSupplier(returnTo?: string): Promise<SupplierCo
   });
 
   if (!supplier) {
-    redirect("/suppliers/apply");
+    redirect("/register/supplier");
   }
 
   return { user, supplier };

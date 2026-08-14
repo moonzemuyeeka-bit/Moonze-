@@ -156,7 +156,10 @@ export const PROTECTED_ROUTE_PERMISSIONS: ReadonlyArray<{
   { prefix: "/supplier/products", permission: "product:manage_own" },
   { prefix: "/supplier/orders", permission: "order:fulfil" },
   { prefix: "/supplier/contracts", permission: "contract:respond_as_supplier" },
+  { prefix: "/supplier/customers", permission: "supplier:manage_own_profile" },
   { prefix: "/supplier/analytics", permission: "analytics:view_own" },
+  { prefix: "/supplier/verification", permission: "supplier:onboard" },
+  { prefix: "/supplier/settings", permission: "supplier:manage_own_profile" },
   { prefix: "/delivery", permission: "delivery:manage_own_jobs" },
   { prefix: "/admin", permission: "admin:view_dashboard" },
 ];

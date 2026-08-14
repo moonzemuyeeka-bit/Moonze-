@@ -6,9 +6,13 @@ import type { TimelineStep } from "@/lib/domain/order-status";
 /** Delivery state machine, mirrored into the order status where relevant. */
 
 export const DELIVERY_TRANSITIONS: Record<DeliveryStatus, readonly DeliveryStatus[]> = {
-  REQUESTED: ["ASSIGNED", "ACCEPTED", "CANCELLED"],
+  // A supplier delivering with their own truck loads it and goes: there is
+  // nobody to assign the job to and nobody to accept it.
+  REQUESTED: ["ASSIGNED", "ACCEPTED", "PICKED_UP", "CANCELLED"],
   ASSIGNED: ["ACCEPTED", "REQUESTED", "CANCELLED"],
-  ACCEPTED: ["PICKED_UP", "CANCELLED"],
+  // A collection is complete the moment the customer takes the goods, so it
+  // never passes through "picked up" or "in transit".
+  ACCEPTED: ["PICKED_UP", "DELIVERED", "CANCELLED"],
   PICKED_UP: ["IN_TRANSIT", "DELIVERED", "FAILED"],
   IN_TRANSIT: ["DELIVERED", "FAILED"],
   DELIVERED: [],
@@ -75,6 +79,25 @@ export function orderStatusForDelivery(status: DeliveryStatus): OrderStatus | nu
     case "PICKED_UP":
     case "IN_TRANSIT":
       return "OUT_FOR_DELIVERY";
+    case "DELIVERED":
+      return "DELIVERED";
+    default:
+      return null;
+  }
+}
+
+/**
+ * The delivery status that should follow an order status change, for orders the
+ * supplier fulfils themselves. The two records describe the same physical event —
+ * "the truck has left" — and a customer reading the delivery card should not see
+ * it contradict the order timeline.
+ */
+export function deliveryStatusForOrder(status: OrderStatus): DeliveryStatus | null {
+  switch (status) {
+    case "READY_FOR_DELIVERY":
+      return "ACCEPTED";
+    case "OUT_FOR_DELIVERY":
+      return "PICKED_UP";
     case "DELIVERED":
       return "DELIVERED";
     default:

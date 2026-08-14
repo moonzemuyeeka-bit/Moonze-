@@ -1,10 +1,12 @@
 import "server-only";
-import type { DeliveryMethod, DeliveryStatus, Prisma } from "@prisma/client";
+import type { DeliveryMethod, DeliveryStatus, OrderStatus, Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import type { SessionUser } from "@/lib/auth/session";
 import { isAdminRole } from "@/lib/auth/permissions";
 import {
   assertDeliveryTransition,
+  canTransitionDelivery,
+  deliveryStatusForOrder,
   orderStatusForDelivery,
 } from "@/lib/domain/delivery-status";
 import { canTransitionOrder } from "@/lib/domain/order-status";
@@ -232,6 +234,43 @@ async function syncOrderWithDelivery(input: {
     to: target,
     note: input.note ?? `Delivery is now "${DELIVERY_STATUS_LABELS[input.to]}".`,
     actor: input.actor,
+  });
+}
+
+/**
+ * Moves the delivery to match an order status the supplier has just set.
+ *
+ * The reverse of `syncOrderWithDelivery`, for orders a supplier fulfils
+ * themselves: they work from the order screen, and the delivery record has to
+ * follow or the customer sees two different stories. A third-party job is left
+ * alone — only the transporter carrying the goods can say where they are.
+ *
+ * There is no risk of the two syncs looping: by the time this runs the order is
+ * already at its new status, and `syncOrderWithDelivery` ignores a move to the
+ * status an order is already in.
+ */
+export async function mirrorDeliveryForOrderStatus(input: {
+  orderId: string;
+  orderStatus: OrderStatus;
+  actor: SessionUser;
+  note?: string | null;
+}): Promise<void> {
+  const target = deliveryStatusForOrder(input.orderStatus);
+  if (!target) return;
+
+  const delivery = await db.delivery.findUnique({
+    where: { orderId: input.orderId },
+    select: { id: true, method: true, status: true },
+  });
+  if (!delivery || delivery.method === "THIRD_PARTY_DELIVERY") return;
+  if (!canTransitionDelivery(delivery.status, target)) return;
+
+  const loaded = await loadDeliveryForActor(delivery.id, input.actor);
+  await applyDeliveryStatus({
+    delivery: loaded,
+    to: target,
+    actor: input.actor,
+    note: input.note ?? null,
   });
 }
 

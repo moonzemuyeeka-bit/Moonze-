@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useActionState } from "react";
-import { Ban, CheckCircle2, CreditCard, Landmark, Wallet } from "lucide-react";
+import { Ban, CheckCircle2, CreditCard, Wallet } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -24,10 +24,8 @@ import {
   type OrderActionState,
 } from "@/server/orders/actions";
 import {
-  confirmPaymentAction,
   initiatePaymentAction,
   recordPaymentAction,
-  rejectPaymentAction,
   settleSandboxPaymentAction,
   verifyPaymentAction,
   type PaymentActionState,
@@ -307,58 +305,5 @@ export function CancelOrderDialog({
         </form>
       </DialogContent>
     </Dialog>
-  );
-}
-
-/** Supplier and admin view of an offline payment they have to confirm. */
-export function ConfirmPaymentForms({
-  paymentId,
-  amountMinor,
-}: {
-  paymentId: string;
-  amountMinor: number;
-}) {
-  const [confirmState, confirm] = useActionState<PaymentActionState, FormData>(
-    confirmPaymentAction,
-    null,
-  );
-  const [rejectState, reject] = useActionState<PaymentActionState, FormData>(
-    rejectPaymentAction,
-    null,
-  );
-
-  return (
-    <div className="space-y-3 rounded-lg border border-gold-200 bg-gold-50 p-3">
-      <p className="flex items-start gap-2 text-sm text-foreground">
-        <Landmark aria-hidden className="mt-0.5 size-4 shrink-0 text-gold-700" />
-        <span>
-          The customer says they have sent {formatZmw(amountMinor)}. Check your account, then
-          confirm or reject — only you can say the money arrived.
-        </span>
-      </p>
-      <FormMessage state={confirmState} />
-      <FormMessage state={rejectState} />
-
-      <div className="flex flex-wrap items-start gap-2">
-        <form action={confirm}>
-          <input type="hidden" name="paymentId" value={paymentId} />
-          <SubmitButton size="sm" pendingText="Confirming…">
-            Money received
-          </SubmitButton>
-        </form>
-        <form action={reject} className="flex flex-wrap items-start gap-2">
-          <input type="hidden" name="paymentId" value={paymentId} />
-          <Input
-            name="reason"
-            aria-label="Why the payment could not be confirmed"
-            placeholder="Nothing has arrived yet"
-            className="h-9 w-56"
-          />
-          <SubmitButton size="sm" variant="outline" pendingText="Saving…">
-            Not received
-          </SubmitButton>
-        </form>
-      </div>
-    </div>
   );
 }

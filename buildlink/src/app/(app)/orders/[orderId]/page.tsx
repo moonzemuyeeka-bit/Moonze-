@@ -37,10 +37,10 @@ import {
   PRODUCT_UNIT_SHORT,
   VERIFICATION_STATUS_LABELS,
 } from "@/lib/labels";
+import { ConfirmPaymentForms } from "@/components/orders/confirm-payment-forms";
 import {
   CancelOrderDialog,
   ConfirmCompleteForm,
-  ConfirmPaymentForms,
   PayOnlineForm,
   RecordPaymentDialog,
   SandboxSettleForms,
