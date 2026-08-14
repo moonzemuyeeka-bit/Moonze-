@@ -360,7 +360,7 @@ tests/
 npm test
 ```
 
-131 tests run against a throwaway database (`TEST_DATABASE_URL`); the suite
+138 tests run against a throwaway database (`TEST_DATABASE_URL`); the suite
 refuses to start if that points at the same database as `DATABASE_URL`.
 
 **Unit** — money and ngwee arithmetic, deposit and balance calculation for every
@@ -376,8 +376,8 @@ dates; the policy gate; reservation expiry releasing a slot; lookup by reference
 and phone; cancellation; a mobile-money deposit confirming an appointment and
 scheduling reminders; declines, cancellations and retries; expiry mid-payment;
 money landing after a slot is gone; replayed and forged webhooks; refunds; price
-changes not rewriting history; and admin authorisation across every admin
-endpoint.
+changes not rewriting history; reminder scheduling, dispatch, de-duplication and
+cancellation; and admin authorisation across every admin endpoint.
 
 ---
 
