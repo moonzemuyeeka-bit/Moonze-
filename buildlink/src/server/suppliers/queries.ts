@@ -545,7 +545,7 @@ export async function getSupplierAnalytics(supplierId: string, days = 90) {
                  WHERE o."status" IN ('DELIVERED', 'COMPLETED')
                ) AS revenue_minor
         FROM "Order" o
-        WHERE o."supplierId" = ${supplierId}::uuid
+        WHERE o."supplierId" = ${supplierId}
           AND COALESCE(o."placedAt", o."createdAt") >= ${since}
           AND o."status" <> 'DRAFT'
         GROUP BY 1
@@ -588,7 +588,7 @@ export async function getSupplierAnalytics(supplierId: string, days = 90) {
         JOIN "Order" o ON o."id" = oi."orderId"
         LEFT JOIN "Product" p ON p."id" = oi."productId"
         LEFT JOIN "ProductCategory" c ON c."id" = p."categoryId"
-        WHERE o."supplierId" = ${supplierId}::uuid
+        WHERE o."supplierId" = ${supplierId}
           AND o."status" IN ('DELIVERED', 'COMPLETED')
           AND o."createdAt" >= ${since}
           AND c."name" IS NOT NULL

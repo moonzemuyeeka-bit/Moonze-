@@ -428,7 +428,9 @@ export async function listProductsForComparison(ids: string[]): Promise<ProductL
     FROM "Product" p
     JOIN "SupplierProfile" s ON s."id" = p."supplierId"
     WHERE ${Prisma.join(
-      [...visibilityConditions(), Prisma.sql`p."id" = ANY(${ids}::uuid[])`],
+      // Prisma stores UUID primary keys in `text` columns, so the array has to
+      // be cast to text[] — `uuid[]` has no equality operator against text.
+      [...visibilityConditions(), Prisma.sql`p."id" = ANY(${ids}::text[])`],
       " AND ",
     )}
     ORDER BY p."priceMinor" ASC
