@@ -1,0 +1,379 @@
+// Regional360 data model.
+//
+// This schema documents the production data model for Regional360 and is
+// structured so the app can be connected to a managed PostgreSQL provider
+// later (Phase 3). The MVP runs entirely on a deterministic in-memory demo
+// dataset (see src/lib/demo), so a live database is NOT required to run the
+// application. The repository layer (src/lib/repositories) is the single
+// swap point between demo data and a Prisma-backed implementation.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  REGIONAL_MANAGER
+  ADMIN
+  ANALYST
+}
+
+enum HealthTier {
+  HEALTHY
+  AT_RISK
+  CRITICAL
+}
+
+enum PerformanceStatus {
+  PERFORMING
+  NEEDS_ATTENTION
+  CRITICAL
+}
+
+enum Stage {
+  PROSPECT
+  QUALIFIED
+  DISCOVERY
+  PROPOSAL
+  NEGOTIATION
+  CLOSED_WON
+  CLOSED_LOST
+}
+
+enum ActionPriority {
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum ActionStatus {
+  OPEN
+  ACCEPTED
+  SNOOZED
+  ASSIGNED
+  COMPLETED
+  DISMISSED
+}
+
+enum Confidence {
+  HIGH
+  MEDIUM
+  LOW
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  role      Role     @default(REGIONAL_MANAGER)
+  regionId  String?
+  region    Region?  @relation(fields: [regionId], references: [id])
+  createdAt DateTime @default(now())
+  auditLogs AuditLog[]
+}
+
+model Region {
+  id          String      @id @default(cuid())
+  name        String
+  currency    String      @default("USD")
+  users       User[]
+  territories Territory[]
+  targets     Target[]
+  revenue     RevenueRecord[]
+  createdAt   DateTime    @default(now())
+}
+
+model Territory {
+  id           String        @id @default(cuid())
+  name         String
+  regionId     String
+  region       Region        @relation(fields: [regionId], references: [id])
+  salespeople  Salesperson[]
+  accounts     Account[]
+  opportunities Opportunity[]
+  targets      Target[]
+  createdAt    DateTime      @default(now())
+
+  @@index([regionId])
+}
+
+model Team {
+  id          String        @id @default(cuid())
+  name        String
+  salespeople Salesperson[]
+}
+
+model Salesperson {
+  id            String         @id @default(cuid())
+  name          String
+  email         String         @unique
+  teamId        String?
+  team          Team?          @relation(fields: [teamId], references: [id])
+  territoryId   String
+  territory     Territory      @relation(fields: [territoryId], references: [id])
+  status        PerformanceStatus @default(PERFORMING)
+  accounts      Account[]
+  opportunities Opportunity[]
+  activities    SalesActivity[]
+  targets       Target[]
+  coachingPlans CoachingPlan[]
+  createdAt     DateTime       @default(now())
+
+  @@index([territoryId])
+}
+
+model Account {
+  id            String            @id @default(cuid())
+  name          String
+  industry      String
+  territoryId   String
+  territory     Territory         @relation(fields: [territoryId], references: [id])
+  ownerId       String
+  owner         Salesperson       @relation(fields: [ownerId], references: [id])
+  annualRevenue Float             @default(0)
+  potentialRevenue Float          @default(0)
+  renewalDate   DateTime?
+  lastContact   DateTime?
+  nextContact   DateTime?
+  healthTier    HealthTier        @default(HEALTHY)
+  contacts      Contact[]
+  opportunities Opportunity[]
+  issues        CustomerIssue[]
+  healthScores  CustomerHealthScore[]
+  productLinks  AccountProduct[]
+  createdAt     DateTime          @default(now())
+
+  @@index([territoryId])
+  @@index([ownerId])
+}
+
+model Contact {
+  id        String  @id @default(cuid())
+  name      String
+  title     String?
+  email     String?
+  accountId String
+  account   Account @relation(fields: [accountId], references: [id])
+
+  @@index([accountId])
+}
+
+model Product {
+  id            String           @id @default(cuid())
+  name          String
+  category      String
+  listPrice     Float            @default(0)
+  accountLinks  AccountProduct[]
+  opportunities Opportunity[]
+}
+
+model AccountProduct {
+  accountId String
+  productId String
+  account   Account @relation(fields: [accountId], references: [id])
+  product   Product @relation(fields: [productId], references: [id])
+  annualValue Float @default(0)
+
+  @@id([accountId, productId])
+}
+
+model Opportunity {
+  id            String      @id @default(cuid())
+  name          String
+  accountId     String
+  account       Account     @relation(fields: [accountId], references: [id])
+  ownerId       String
+  owner         Salesperson @relation(fields: [ownerId], references: [id])
+  territoryId   String
+  territory     Territory   @relation(fields: [territoryId], references: [id])
+  productId     String?
+  product       Product?    @relation(fields: [productId], references: [id])
+  value         Float       @default(0)
+  probability   Float       @default(0)
+  stage         Stage       @default(PROSPECT)
+  expectedClose DateTime?
+  daysInStage   Int         @default(0)
+  nextAction    String?
+  lostReason    String?
+  riskStatus    String?
+  createdAt     DateTime    @default(now())
+  closedAt      DateTime?
+
+  @@index([ownerId])
+  @@index([territoryId])
+  @@index([stage])
+  @@index([accountId])
+}
+
+model SalesActivity {
+  id            String      @id @default(cuid())
+  salespersonId String
+  salesperson   Salesperson @relation(fields: [salespersonId], references: [id])
+  type          String
+  date          DateTime    @default(now())
+  notes         String?
+
+  @@index([salespersonId])
+}
+
+model Campaign {
+  id            String         @id @default(cuid())
+  name          String
+  channel       String
+  cost          Float          @default(0)
+  startDate     DateTime?
+  endDate       DateTime?
+  leadsGenerated Int           @default(0)
+  qualifiedLeads Int           @default(0)
+  meetings       Int           @default(0)
+  proposals      Int           @default(0)
+  closedDeals    Int           @default(0)
+  revenue        Float         @default(0)
+  leads          CampaignLead[]
+}
+
+model CampaignLead {
+  id         String   @id @default(cuid())
+  campaignId String
+  campaign   Campaign @relation(fields: [campaignId], references: [id])
+  qualified  Boolean  @default(false)
+  converted  Boolean  @default(false)
+
+  @@index([campaignId])
+}
+
+model RevenueRecord {
+  id        String   @id @default(cuid())
+  regionId  String
+  region    Region   @relation(fields: [regionId], references: [id])
+  period    String
+  amount    Float
+  createdAt DateTime @default(now())
+
+  @@index([regionId])
+}
+
+model Target {
+  id            String       @id @default(cuid())
+  period        String
+  amount        Float
+  regionId      String?
+  region        Region?      @relation(fields: [regionId], references: [id])
+  territoryId   String?
+  territory     Territory?   @relation(fields: [territoryId], references: [id])
+  salespersonId String?
+  salesperson   Salesperson? @relation(fields: [salespersonId], references: [id])
+}
+
+model CustomerIssue {
+  id          String   @id @default(cuid())
+  accountId   String
+  account     Account  @relation(fields: [accountId], references: [id])
+  title       String
+  severity    String
+  status      String   @default("open")
+  openedAt    DateTime @default(now())
+  resolvedAt  DateTime?
+
+  @@index([accountId])
+}
+
+model CustomerHealthScore {
+  id        String     @id @default(cuid())
+  accountId String
+  account   Account    @relation(fields: [accountId], references: [id])
+  score     Float
+  tier      HealthTier
+  computedAt DateTime  @default(now())
+
+  @@index([accountId])
+}
+
+model MarketSignal {
+  id           String   @id @default(cuid())
+  industry     String
+  signalType   String
+  headline     String
+  opportunity  String
+  estimatedValue Float  @default(0)
+  penetration  Float    @default(0)
+  createdAt    DateTime @default(now())
+}
+
+model Action {
+  id          String         @id @default(cuid())
+  title       String
+  reason      String
+  priority    ActionPriority @default(MEDIUM)
+  status      ActionStatus   @default(OPEN)
+  source      String
+  impact      Float          @default(0)
+  urgency     Float          @default(0)
+  confidence  Confidence     @default(MEDIUM)
+  effort      Float          @default(0)
+  assignedTo  String?
+  relatedType String?
+  relatedId   String?
+  createdAt   DateTime       @default(now())
+  completedAt DateTime?
+
+  @@index([status])
+  @@index([priority])
+}
+
+model CoachingPlan {
+  id            String            @id @default(cuid())
+  salespersonId String
+  salesperson   Salesperson       @relation(fields: [salespersonId], references: [id])
+  focus         String
+  summary       String
+  createdAt     DateTime          @default(now())
+  activities    CoachingActivity[]
+
+  @@index([salespersonId])
+}
+
+model CoachingActivity {
+  id        String       @id @default(cuid())
+  planId    String
+  plan      CoachingPlan @relation(fields: [planId], references: [id])
+  week      Int
+  title     String
+  completed Boolean      @default(false)
+
+  @@index([planId])
+}
+
+model AIInsight {
+  id            String     @id @default(cuid())
+  scope         String
+  recommendation String
+  why           String
+  supportingData String
+  confidence    Confidence @default(MEDIUM)
+  suggestedAction String
+  createdAt     DateTime   @default(now())
+}
+
+model Report {
+  id        String   @id @default(cuid())
+  type      String
+  period    String
+  content   String
+  createdAt DateTime @default(now())
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  action    String
+  entity    String?
+  entityId  String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
