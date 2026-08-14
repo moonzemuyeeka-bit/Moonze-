@@ -119,12 +119,15 @@ export function buildDeliveryTimeline(input: {
 
   const failed = status === "FAILED" || status === "CANCELLED";
 
+  // As with orders: exactly one current step, and none once the job has failed.
+  const currentIndex = failed ? -1 : Math.max(reachedIndex, 0);
+
   const steps: TimelineStep[] = skeleton.map((step, index) => {
     const event = firstEvent(step.status);
     let state: TimelineStep["state"];
-    if (event) state = index === reachedIndex && !failed ? "current" : "done";
-    else if (failed) state = "upcoming";
-    else state = index === reachedIndex + 1 ? "current" : "upcoming";
+    if (index === currentIndex) state = "current";
+    else if (event) state = "done";
+    else state = "upcoming";
 
     return {
       key: step.key,

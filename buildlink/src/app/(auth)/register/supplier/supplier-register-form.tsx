@@ -11,7 +11,7 @@ import { SubmitButton } from "@/components/forms/submit-button";
 import { FormMessage, fieldError } from "@/components/forms/form-message";
 import { LocationSelect } from "@/components/forms/location-select";
 import { registerSupplierAction, type AuthActionState } from "@/server/auth/actions";
-import { PASSWORD_MIN_LENGTH } from "@/lib/auth/password";
+import { PASSWORD_MIN_LENGTH } from "@/lib/auth/password-policy";
 import type { CategoryOption, ProvinceOption } from "@/server/reference/queries";
 
 export function SupplierRegisterForm({

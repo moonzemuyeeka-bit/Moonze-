@@ -8,7 +8,7 @@ import {
   uuidSchema,
   zambianPhoneSchema,
 } from "@/lib/validation/shared";
-import { describePasswordProblems, PASSWORD_MIN_LENGTH } from "@/lib/auth/password";
+import { describePasswordProblems, PASSWORD_MIN_LENGTH } from "@/lib/auth/password-policy";
 
 const passwordSchema = z
   .string()

@@ -194,17 +194,18 @@ export function buildOrderTimeline(input: {
     return reached ? index : highest;
   }, -1);
 
+  // Exactly one step is "current": the furthest one actually reached, or the
+  // first step when nothing has happened yet. A cancelled order has none,
+  // because the failed step appended below is where the story ends.
+  const currentIndex = isCancelled ? -1 : Math.max(reachedIndex, 0);
+
   const steps: TimelineStep[] = skeleton.map((step, index) => {
     const event = step.statuses.map(firstEvent).find((candidate) => candidate !== null) ?? null;
 
     let state: TimelineState;
-    if (event) {
-      state = index === reachedIndex && !isCancelled ? "current" : "done";
-    } else if (isCancelled) {
-      state = "upcoming";
-    } else {
-      state = index === reachedIndex + 1 ? "current" : "upcoming";
-    }
+    if (index === currentIndex) state = "current";
+    else if (event) state = "done";
+    else state = "upcoming";
 
     return {
       key: step.key,

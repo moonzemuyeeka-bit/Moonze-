@@ -8,7 +8,7 @@ import { CheckboxField, RadioCard, RadioGroup } from "@/components/ui/controls";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { FormMessage, fieldError } from "@/components/forms/form-message";
 import { registerDeliveryProviderAction, type AuthActionState } from "@/server/auth/actions";
-import { PASSWORD_MIN_LENGTH } from "@/lib/auth/password";
+import { PASSWORD_MIN_LENGTH } from "@/lib/auth/password-policy";
 import type { ProvinceOption } from "@/server/reference/queries";
 
 export function DeliveryRegisterForm({ provinces }: { provinces: ProvinceOption[] }) {

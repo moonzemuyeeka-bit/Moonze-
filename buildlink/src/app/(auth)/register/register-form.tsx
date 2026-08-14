@@ -10,7 +10,7 @@ import { CheckboxField } from "@/components/ui/controls";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { FormMessage, fieldError } from "@/components/forms/form-message";
 import { registerCustomerAction, type AuthActionState } from "@/server/auth/actions";
-import { PASSWORD_MIN_LENGTH } from "@/lib/auth/password";
+import { PASSWORD_MIN_LENGTH } from "@/lib/auth/password-policy";
 
 export function RegisterForm({ next }: { next?: string }) {
   const [state, formAction] = React.useActionState<AuthActionState, FormData>(
