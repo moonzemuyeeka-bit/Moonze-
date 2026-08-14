@@ -1,0 +1,177 @@
+@import "tailwindcss";
+
+/* ---------------------------------------------------------------------------
+   Koko's Bookings design system
+   A premium, feminine palette: warm whites, blush and rose, charcoal text.
+   Everything else in the app composes these tokens.
+--------------------------------------------------------------------------- */
+
+@theme {
+  --color-cream: #fffcfd;
+  --color-blush-50: #fff7fa;
+  --color-blush-100: #feecf2;
+  --color-blush-200: #fbd7e3;
+  --color-blush-300: #f5b6c9;
+  --color-blush-400: #ec8faa;
+  --color-blush-500: #de6b8e;
+  --color-blush-600: #c4557a;
+  --color-blush-700: #a34364;
+  --color-blush-800: #7e3550;
+  --color-blush-900: #5a2739;
+
+  --color-ink: #241e22;
+  --color-ink-soft: #5b5158;
+  --color-ink-muted: #8b8189;
+  --color-line: #f0e4e9;
+
+  --color-mint-50: #f0faf5;
+  --color-mint-200: #b8e6cd;
+  --color-mint-500: #3f9e6e;
+  --color-mint-700: #2c7150;
+
+  --color-amber-soft-50: #fff8ec;
+  --color-amber-soft-200: #fbe0b3;
+  --color-amber-soft-500: #c98a1e;
+  --color-amber-soft-700: #935f10;
+
+  --color-rose-alert-50: #fff4f4;
+  --color-rose-alert-200: #f8cccc;
+  --color-rose-alert-500: #cf4d4d;
+  --color-rose-alert-700: #9c3232;
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-display: var(--font-playfair), ui-serif, Georgia, serif;
+
+  --radius-xl: 1rem;
+  --radius-2xl: 1.25rem;
+  --radius-3xl: 1.75rem;
+
+  --shadow-soft: 0 1px 2px rgb(90 39 57 / 0.04), 0 8px 24px -12px rgb(90 39 57 / 0.14);
+  --shadow-card: 0 1px 3px rgb(90 39 57 / 0.05), 0 14px 40px -20px rgb(90 39 57 / 0.2);
+  --shadow-float: 0 -4px 24px -8px rgb(90 39 57 / 0.16);
+  --shadow-glow: 0 0 0 4px rgb(222 107 142 / 0.16);
+
+  --animate-fade-up: fade-up 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-fade-in: fade-in 0.3s ease both;
+  --animate-pop: pop 0.5s cubic-bezier(0.22, 1.4, 0.36, 1) both;
+  --animate-shimmer: shimmer 1.6s linear infinite;
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.82);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.04);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes shimmer {
+  from {
+    background-position: -200% 0;
+  }
+  to {
+    background-position: 200% 0;
+  }
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background:
+      radial-gradient(1200px 600px at 12% -10%, var(--color-blush-100), transparent 60%),
+      radial-gradient(900px 500px at 100% 0%, #fdf3f7, transparent 55%),
+      var(--color-cream);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    min-height: 100dvh;
+  }
+
+  h1,
+  h2,
+  h3,
+  .font-display {
+    font-family: var(--font-display);
+    letter-spacing: -0.01em;
+  }
+
+  /* Visible, on-brand focus for keyboard users everywhere. */
+  :focus-visible {
+    outline: 2px solid var(--color-blush-600);
+    outline-offset: 2px;
+    border-radius: 0.35rem;
+  }
+
+  ::selection {
+    background: var(--color-blush-200);
+    color: var(--color-blush-900);
+  }
+
+  input,
+  select,
+  textarea,
+  button {
+    font: inherit;
+  }
+}
+
+@layer components {
+  /* Frosted card used across the customer flow and admin shell. */
+  .surface {
+    background: color-mix(in srgb, white 88%, var(--color-blush-50));
+    border: 1px solid var(--color-line);
+    box-shadow: var(--shadow-card);
+    backdrop-filter: blur(6px);
+  }
+
+  .skeleton {
+    background-image: linear-gradient(
+      90deg,
+      var(--color-blush-100) 0%,
+      #fff 40%,
+      var(--color-blush-100) 80%
+    );
+    background-size: 200% 100%;
+    animation: var(--animate-shimmer);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
