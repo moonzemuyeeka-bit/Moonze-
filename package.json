@@ -1,0 +1,38 @@
+{
+  "name": "flawless",
+  "version": "1.0.0",
+  "description": "Flawless - a WhatsApp + web AI assistant for salons and beauty spas: discovery, booking, mobile (come-to-you) services, dynamic pricing, review-based recommendations, transport/ride-hailing and student discounts.",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "dev": "ts-node src/index.ts",
+    "test": "jest --runInBand",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "keywords": [
+    "whatsapp",
+    "ai-assistant",
+    "salon",
+    "beauty-spa",
+    "booking",
+    "openai",
+    "chatbot"
+  ],
+  "author": "Flawless",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.19.2"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/jest": "^29.5.12",
+    "@types/node": "^22.5.0",
+    "@types/supertest": "^6.0.2",
+    "jest": "^29.7.0",
+    "supertest": "^7.0.0",
+    "ts-jest": "^29.2.5",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.5.4"
+  }
+}
