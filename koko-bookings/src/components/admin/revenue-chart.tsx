@@ -14,12 +14,17 @@ export function RevenueChart({
 
   return (
     <figure className="space-y-3">
-      <div className="flex h-40 items-end gap-1.5" aria-hidden>
+      <div className="flex h-40 gap-1.5" aria-hidden>
         {data.map((point) => {
           const height = Math.round((point.ngwee / max) * 100);
           return (
-            <div key={point.date} className="flex min-w-0 flex-1 flex-col items-center gap-1">
-              <div className="flex h-full w-full items-end">
+            <div
+              key={point.date}
+              className="flex h-full min-w-0 flex-1 flex-col items-center gap-1"
+            >
+              {/* flex-1 gives the track a definite height, which the bar's
+                  percentage height is measured against. */}
+              <div className="flex w-full flex-1 items-end">
                 <div
                   className="w-full rounded-t-lg bg-linear-to-t from-blush-300 to-blush-500 transition-all"
                   style={{ height: `${Math.max(height, point.ngwee > 0 ? 4 : 1)}%` }}

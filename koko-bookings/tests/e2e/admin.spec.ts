@@ -75,3 +75,43 @@ test("the owner signs in and runs the business from a phone", async ({ page }, t
 
   expect(problems, `browser reported problems:\n${problems.join("\n")}`).toEqual([]);
 });
+
+test.describe("at desktop width", () => {
+  test.use({
+    viewport: { width: 1440, height: 900 },
+    isMobile: false,
+    hasTouch: false,
+    deviceScaleFactor: 1,
+  });
+
+  test("the dashboard swaps the tab strip for a navigation rail", async ({ page }, testInfo) => {
+    const problems = watchForConsoleErrors(page);
+
+    await page.goto("/admin/login");
+    await page.getByLabel("Email").fill(EMAIL);
+    await page.getByLabel("Password").fill(PASSWORD);
+    await page.getByRole("button", { name: "Sign in" }).click();
+
+    await expect(page.getByRole("heading", { name: "Today at a glance" })).toBeVisible();
+
+    // These only exist in the desktop rail, which is hidden on a phone.
+    await expect(page.getByText(/^Signed in as /)).toBeVisible();
+    await expect(page.getByRole("link", { name: "View customer site" })).toBeVisible();
+    for (const item of ["Calendar", "Bookings", "Services", "Customers", "Payments", "Settings"]) {
+      await expect(page.getByRole("navigation", { name: "Admin" }).getByRole("link", { name: item })).toBeVisible();
+    }
+
+    // The revenue chart is drawn with divs, so a layout slip can silently
+    // flatten every bar to nothing. Measure the tallest one.
+    const tallestBar = await page
+      .locator("figure div[title]")
+      .evaluateAll((bars) =>
+        Math.max(0, ...bars.map((bar) => bar.getBoundingClientRect().height)),
+      );
+    expect(tallestBar).toBeGreaterThan(40);
+
+    await attachScreenshot(testInfo, page, "11_admin_dashboard_at_desktop_width");
+
+    expect(problems, `browser reported problems:\n${problems.join("\n")}`).toEqual([]);
+  });
+});

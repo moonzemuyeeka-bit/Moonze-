@@ -362,7 +362,7 @@ tests/
 npm test        # 141 unit + integration tests (Vitest)
 
 npm run build   # the browser tests run against a production build
-npm run test:e2e   # 5 browser journeys (Playwright, phone viewport)
+npm run test:e2e   # 6 browser journeys (Playwright, phone viewport)
 ```
 
 The Vitest suite runs against a throwaway database (`TEST_DATABASE_URL`); it
@@ -392,7 +392,9 @@ leaves the appointment unconfirmed while it processes → confirmation with the
 reference, `K50` paid and `K450` still due → the slot returning 409 for the next
 customer → finding the booking again with the reference and phone number. It also
 covers admin route protection, rejected credentials and the owner's dashboard,
-bookings, services, calendar and settings pages. Every run asserts the browser
+bookings, services, calendar and settings pages. One journey reloads the dashboard
+at 1440 × 900 to check the phone tab strip gives way to the navigation rail and
+that the revenue chart actually draws its bars. Every run asserts the browser
 console stayed clean and writes screenshots to `tests/e2e/screenshots/`.
 
 Playwright drives the Chrome already installed on the machine (`channel:
